@@ -1,1 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyStretch - AI-Powered Study Question Generator</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- STAR BACKGROUND -->
+  <div class="stars"></div>
 
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="container">
+      <h2 class="site-name">StudyStretch</h2>
+      <ul class="nav-links">
+        <li><a href="#how">How It Works</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#testimonials">Testimonials</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#" class="btn-login">Login</a></li>
+        <li><a href="#" class="btn-signup">Sign Up</a></li>
+      </ul>
+      <div class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-text">
+          <h1>Transform Study Materials into <span class="highlight">Practice Questions</span></h1>
+          <p>Upload your documents and let our advanced AI generate customized practice questions to boost your learning efficiency.</p>
+          <div class="hero-badges">
+            <div class="badge">
+              <i class="fas fa-bolt"></i>
+              <span>Generate questions in seconds</span>
+            </div>
+            <div class="badge">
+              <i class="fas fa-shield-alt"></i>
+              <span>Secure & private</span>
+            </div>
+            <div class="badge">
+              <i class="fas fa-brain"></i>
+              <span>Advanced AI analysis</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Upload Box -->
+        <div class="upload-box">
+          <div class="upload-header">
+            <h3>Create Questions from Your Files</h3>
+            <p>Supported formats: PDF, DOCX, PPT, TXT, JPG, PNG</p>
+          </div>
+          
+          <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">
+              <i class="fas fa-file-upload"></i>
+            </div>
+            <p class="upload-title">Drag & drop your file here</p>
+            <p class="upload-subtitle">or</p>
+            <button class="btn-browse">Browse Files</button>
+            <input type="file" id="fileInput" accept=".pdf,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.txt" hidden>
+          </div>
+          
+          <div class="upload-options">
+            <div class="option">
+              <label for="questionType">Question Type</label>
+              <select id="questionType">
+                <option value="multiple">Multiple Choice</option>
+                <option value="truefalse">True/False</option>
+                <option value="short">Short Answer</option>
+                <option value="flashcard">Flashcards</option>
+                <option value="mixed">Mixed (Recommended)</option>
+              </select>
+            </div>
+            
+            <div class="option">
+              <label for="questionCount">Number of Questions: <span id="questionCountValue">10</span></label>
+              <input type="range" id="questionCount" min="5" max="50" value="10">
+            </div>
+            
+            <div class="option">
+              <label for="difficulty">Difficulty Level</label>
+              <select id="difficulty">
+                <option value="easy">Easy</option>
+                <option value="medium" selected>Medium</option>
+                <option value="hard">Hard</option>
+                <option value="exam">Exam Level</option>
+              </select>
+            </div>
+          </div>
+          
+          <button class="btn-generate" id="generateBtn">
+            <i class="fas fa-robot"></i>
+            Generate Questions
+          </button>
+          
+          <div class="upload-footer">
+            <p><i class="fas fa-lock"></i> Your files are processed securely and never stored</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Trusted By Section -->
+  <section class="trusted-by">
+    <div class="container">
+      <p>Trusted by students and educators at</p>
+      <div class="logos">
+        <div class="logo-item">Harvard</div>
+        <div class="logo-item">Stanford</div>
+        <div class="logo-item">MIT</div>
+        <div class="logo-item">Oxford</div>
+        <div class="logo-item">Cambridge</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section id="how" class="how-it-works">
+    <div class="container">
+      <h2>How StudyStretch Works</h2>
+      <p class="section-subtitle">Transform your study materials into effective practice in just three simple steps</p>
+      
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-icon">
+            <i class="fas fa-upload"></i>
+          </div>
+          <h3>Upload Your File</h3>
+          <p>Upload PDFs, Word documents, presentations, or images. Our AI extracts text and key concepts automatically.</p>
+        </div>
+        
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-icon">
+            <i class="fas fa-cogs"></i>
+          </div>
+          <h3>Customize Questions</h3>
+          <p>Select question types, difficulty level, and number of questions. Our AI tailors the questions to your needs.</p>
+        </div>
+        
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-icon">
+            <i class="fas fa-tasks"></i>
+          </div>
+          <h3>Practice & Review</h3>
+          <p>Take your custom practice test, get instant feedback, and see explanations with references to your original material.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="features">
+    <div class="container">
+      <h2>Why Choose StudyStretch?</h2>
+      <p class="section-subtitle">Advanced features that make studying more effective and efficient</p>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-file-alt"></i>
+          </div>
+          <h3>Multiple File Format Support</h3>
+          <p>Upload PDFs, DOCX, PPT, images, and more. Our AI can process virtually any study material.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-question-circle"></i>
+          </div>
+          <h3>Diverse Question Types</h3>
+          <p>Generate multiple choice, true/false, short answer, essay questions, and interactive flashcards.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-sliders-h"></i>
+          </div>
+          <h3>Customizable Difficulty</h3>
+          <p>Adjust question difficulty from basic recall to advanced application and critical thinking.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-brain"></i>
+          </div>
+          <h3>Smart AI Analysis</h3>
+          <p>Our advanced AI identifies key concepts and creates relevant, context-aware questions.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-check-double"></i>
+          </div>
+          <h3>Instant Feedback</h3>
+          <p>Get immediate scoring with detailed explanations and references to your source material.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <h3>Progress Tracking</h3>
+          <p>Monitor your performance over time and identify areas that need more practice.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section id="testimonials" class="testimonials">
+    <div class="container">
+      <h2>What Our Users Say</h2>
+      <p class="section-subtitle">Join thousands of satisfied students and educators</p>
+      
+      <div class="testimonial-grid">
+        <div class="testimonial-card">
+          <div class="testimonial-content">
+            <div class="stars">
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+            </div>
+            <p>"StudyStretch has completely transformed how I prepare for exams. I can now create practice tests from my lecture notes in minutes!"</p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar"></div>
+            <div class="author-details">
+              <h4>Sarah Johnson</h4>
+              <p>Medical Student</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial-card">
+          <div class="testimonial-content">
+            <div class="stars">
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+            </div>
+            <p>"As a teacher, this tool has saved me countless hours. I can now create differentiated practice sets for my students based on their individual needs."</p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar"></div>
+            <div class="author-details">
+              <h4>Michael Chen</h4>
+              <p>High School Teacher</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial-card">
+          <div class="testimonial-content">
+            <div class="stars">
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star-half-alt"></i>
+            </div>
+            <p>"The AI is incredibly smart at identifying what's important. The questions it generates are actually relevant to what I need to know for my courses."</p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar"></div>
+            <div class="author-details">
+              <h4>Emily Rodriguez</h4>
+              <p>Law Student</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing" class="pricing">
+    <div class="container">
+      <h2>Simple, Transparent Pricing</h2>
+      <p class="section-subtitle">Choose the plan that works best for you</p>
+      
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="pricing-header">
+            <h3>Free</h3>
+            <p>For trying out basic features</p>
+          </div>
+          <div class="price">$0<span>/month</span></div>
+          <ul class="features-list">
+            <li><i class="fas fa-check"></i> 5 PDF uploads per month</li>
+            <li><i class="fas fa-check"></i> Up to 10 questions per upload</li>
+            <li><i class="fas fa-check"></i> Multiple choice questions only</li>
+            <li><i class="fas fa-check"></i> Medium difficulty only</li>
+            <li><i class="fas fa-times"></i> No AI grading</li>
+            <li><i class="fas fa-times"></i> No progress tracking</li>
+          </ul>
+          <button class="btn-pricing">Get Started</button>
+        </div>
+        
+        <div class="pricing-card popular">
+          <div class="popular-badge">MOST POPULAR</div>
+          <div class="pricing-header">
+            <h3>Premium</h3>
+            <p>For serious students</p>
+          </div>
+          <div class="price">$5<span>/month</span></div>
+          <ul class="features-list">
+            <li><i class="fas fa-check"></i> Unlimited uploads</li>
+            <li><i class="fas fa-check"></i> Up to 50 questions per upload</li>
+            <li><i class="fas fa-check"></i> All question types</li>
+            <li><i class="fas fa-check"></i> Adjustable difficulty</li>
+            <li><i class="fas fa-check"></i> Advanced AI grading</li>
+            <li><i class="fas fa-check"></i> Progress tracking & analytics</li>
+          </ul>
+          <button class="btn-pricing">Subscribe Now</button>
+        </div>
+        
+        <div class="pricing-card">
+          <div class="pricing-header">
+            <h3>Institutional</h3>
+            <p>For schools & organizations</p>
+          </div>
+          <div class="price">Custom<span></span></div>
+          <ul class="features-list">
+            <li><i class="fas fa-check"></i> Everything in Premium</li>
+            <li><i class="fas fa-check"></i> Multiple teacher accounts</li>
+            <li><i class="fas fa-check"></i> Student management</li>
+            <li><i class="fas fa-check"></i> Classroom analytics</li>
+            <li><i class="fas fa-check"></i> Custom branding</li>
+            <li><i class="fas fa-check"></i> Priority support</li>
+          </ul>
+          <button class="btn-pricing">Contact Sales</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="faq">
+    <div class="container">
+      <h2>Frequently Asked Questions</h2>
+      
+      <div class="faq-grid">
+        <div class="faq-item">
+          <div class="faq-question">
+            <h3>What file formats does StudyStretch support?</h3>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            <p>We support PDF, DOCX, PPT, JPG, and PNG files. Our AI can extract text from these formats to generate relevant questions.</p>
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-question">
+            <h3>How accurate are the generated questions?</h3>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            <p>Our AI has been trained on educational materials to generate highly relevant and accurate questions. The accuracy depends on the quality of the source material, but users consistently report 90%+ relevance.</p>
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-question">
+            <h3>Is my data secure?</h3>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            <p>Yes! We use industry-standard encryption and never store your files after processing. Your materials are completely private and secure.</p>
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-question">
+            <h3>Can I use StudyStretch for commercial purposes?</h3>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            <p>Our free plan is for personal use only. For commercial use, please subscribe to our Premium plan or contact us for institutional licensing.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta">
+    <div class="container">
+      <div class="cta-content">
+        <h2>Ready to Transform Your Study Process?</h2>
+        <p>Join thousands of students and educators who are already using StudyStretch to make studying more effective and efficient.</p>
+        <button class="btn-cta">Get Started for Free</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h3>StudyStretch</h3>
+          <p>Transforming how students study with AI-powered question generation.</p>
+          <div class="social-links">
+            <a href="#"><i class="fab fa-twitter"></i></a>
+            <a href="#"><i class="fab fa-facebook"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+            <a href="#"><i class="fab fa-linkedin"></i></a>
+          </div>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Product</h4>
+          <ul>
+            <li><a href="#">Features</a></li>
+            <li><a href="#">Pricing</a></li>
+            <li><a href="#">Use Cases</a></li>
+            <li><a href="#">Testimonials</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Resources</h4>
+          <ul>
+            <li><a href="#">Blog</a></li>
+            <li><a href="#">Tutorials</a></li>
+            <li><a href="#">Documentation</a></li>
+            <li><a href="#">Support</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Company</h4>
+          <ul>
+            <li><a href="#">About Us</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>© 2025 StudyStretch. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Exam Interface Modal -->
+  <div id="examModal" class="exam-modal">
+    <div class="exam-container">
+      <div class="exam-header">
+        <div class="exam-info">
+          <h2>StudyStretch Practice Exam</h2>
+          <div class="exam-meta">
+            <span id="examQuestionCount">0 Questions</span>
+            <span id="examTimer">00:00</span>
+            <span id="examDifficulty">Medium Difficulty</span>
+          </div>
+        </div>
+        <button class="exam-close" id="examClose">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="exam-content">
+        <div class="question-nav">
+          <div class="question-numbers" id="questionNumbers">
+            <!-- Question numbers will be generated here -->
+          </div>
+          <div class="nav-buttons">
+            <button id="prevQuestion" disabled>
+              <i class="fas fa-chevron-left"></i> Previous
+            </button>
+            <button id="nextQuestion">
+              Next <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="question-container">
+          <div class="question-content">
+            <div id="currentQuestion">
+              <!-- Current question will be displayed here -->
+            </div>
+          </div>
+        </div>
+
+        <div class="exam-controls">
+          <button id="flagQuestion" class="btn-flag">
+            <i class="far fa-flag"></i> Flag Question
+          </button>
+          <button id="submitExam" class="btn-submit">
+            Submit Exam <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Modal -->
+  <div id="resultsModal" class="results-modal">
+    <div class="results-container">
+      <div class="results-header">
+        <h2>Exam Results</h2>
+        <button class="results-close" id="resultsClose">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="results-content">
+        <div class="results-summary">
+          <div class="score-circle">
+            <div class="circle-bg">
+              <div class="circle">
+                <div class="score-percent" id="scorePercent">0%</div>
+                <div class="score-label">Score</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="results-stats">
+            <div class="stat">
+              <div class="stat-value" id="correctAnswers">0</div>
+              <div class="stat-label">Correct</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value" id="incorrectAnswers">0</div>
+              <div class="stat-label">Incorrect</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value" id="totalQuestions">0</div>
+              <div class="stat-label">Total Questions</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="results-breakdown">
+          <h3>Question Breakdown</h3>
+          <div class="questions-review" id="questionsReview">
+            <!-- Questions review will be generated here -->
+          </div>
+        </div>
+
+        <div class="results-actions">
+          <button id="reviewAnswers" class="btn-review">
+            <i class="fas fa-redo"></i> Review Answers
+          </button>
+          <button id="newExam" class="btn-new">
+            <i class="fas fa-plus"></i> Create New Exam
+          </button>
+          <button id="downloadResults" class="btn-download">
+            <i class="fas fa-download"></i> Download Results
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
