@@ -101,6 +101,26 @@ body {
   text-shadow: 0 3px 8px rgba(155, 106, 255, 0.6);
 }
 
+.site-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.site-logo i {
+  font-size: 2rem;
+  color: var(--primary);
+  line-height: 1; /* makes it sit flush with text */
+}
+
+.site-logo .site-name {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0; /* removes default h2 spacing */
+}
+
+
 .nav-links {
   display: flex;
   list-style: none;
