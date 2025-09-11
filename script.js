@@ -1,4 +1,5 @@
-fetch("/api/test.js")
-  .then(res => res.json())
-  .then(data => console.log(data.message))
-  .catch(err => console.error(err));
+document.getElementById("testBtn").addEventListener("click", async () => {
+  const res = await fetch("/.netlify/functions/hello");
+  const data = await res.json();
+  document.getElementById("response").innerText = data.message;
+});
