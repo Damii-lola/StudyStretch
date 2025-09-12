@@ -33,6 +33,7 @@ function initFileUpload() {
   const uploadArea = document.querySelector('.upload-area');
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
+  fileInput.id = 'file-input';
   fileInput.accept = '.pdf,.docx,.doc,.txt,.png,.jpg,.jpeg';
   fileInput.style.display = 'none';
   document.body.appendChild(fileInput);
@@ -43,22 +44,32 @@ function initFileUpload() {
   let selectedFile = null;
   
   // Drag and drop functionality
-  uploadArea.addEventListener('dragover', function(e) {
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, preventDefaults, false);
+  });
+  
+  function preventDefaults(e) {
     e.preventDefault();
+    e.stopPropagation();
+  }
+  
+  uploadArea.addEventListener('dragenter', function() {
     uploadArea.classList.add('dragover');
+    uploadArea.querySelector('.upload-title').textContent = 'Drop file here...';
   });
   
   uploadArea.addEventListener('dragleave', function() {
     uploadArea.classList.remove('dragover');
+    updateUploadText();
   });
   
   uploadArea.addEventListener('drop', function(e) {
-    e.preventDefault();
     uploadArea.classList.remove('dragover');
     
     if (e.dataTransfer.files.length) {
       handleFileSelect(e.dataTransfer.files[0]);
     }
+    updateUploadText();
   });
   
   // Click to select file
@@ -86,6 +97,12 @@ function initFileUpload() {
     
     uploadAndConvertFile(selectedFile);
   });
+  
+  function updateUploadText() {
+    if (!selectedFile) {
+      uploadArea.querySelector('.upload-title').textContent = 'Drag & drop your file here';
+    }
+  }
   
   function handleFileSelect(file) {
     // Validate file type
@@ -115,15 +132,102 @@ function initFileUpload() {
     // Update UI to show file is selected
     const uploadIcon = uploadArea.querySelector('.upload-icon i');
     const uploadTitle = uploadArea.querySelector('.upload-title');
+    const uploadSubtitle = uploadArea.querySelector('.upload-subtitle');
+    const fileSize = formatFileSize(file.size);
     
     uploadIcon.className = 'fas fa-file-check';
-    uploadTitle.textContent = `Selected: ${file.name}`;
+    uploadIcon.style.color = '#4CAF50';
+    uploadTitle.textContent = file.name;
+    uploadTitle.style.fontWeight = '600';
+    uploadTitle.style.color = '#4CAF50';
+    
+    if (uploadSubtitle) {
+      uploadSubtitle.textContent = `Size: ${fileSize} • Type: ${getFileType(file.type)}`;
+      uploadSubtitle.style.display = 'block';
+    }
+    
+    // Create a remove file button
+    let removeBtn = uploadArea.querySelector('.remove-file');
+    if (!removeBtn) {
+      removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-file';
+      removeBtn.innerHTML = '<i class="fas fa-times"></i> Remove';
+      removeBtn.style.marginTop = '10px';
+      removeBtn.style.padding = '5px 10px';
+      removeBtn.style.background = 'rgba(244, 67, 54, 0.2)';
+      removeBtn.style.color = '#f44336';
+      removeBtn.style.border = '1px solid #f44336';
+      removeBtn.style.borderRadius = '4px';
+      removeBtn.style.cursor = 'pointer';
+      removeBtn.style.fontSize = '12px';
+      
+      removeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        resetFileSelection();
+      });
+      
+      uploadArea.appendChild(removeBtn);
+    }
     
     // Enable generate button
     generateBtn.classList.add('active');
     generateBtn.disabled = false;
     
-    showNotification('File selected successfully! Click "Generate Questions" to continue.', 'success');
+    showNotification(`"${file.name}" selected successfully! Click "Generate Questions" to continue.`, 'success');
+  }
+  
+  function resetFileSelection() {
+    selectedFile = null;
+    fileInput.value = '';
+    
+    const uploadArea = document.querySelector('.upload-area');
+    const uploadIcon = uploadArea.querySelector('.upload-icon i');
+    const uploadTitle = uploadArea.querySelector('.upload-title');
+    const uploadSubtitle = uploadArea.querySelector('.upload-subtitle');
+    const removeBtn = uploadArea.querySelector('.remove-file');
+    
+    uploadIcon.className = 'fas fa-file-upload';
+    uploadIcon.style.color = '';
+    uploadTitle.textContent = 'Drag & drop your file here';
+    uploadTitle.style.fontWeight = '';
+    uploadTitle.style.color = '';
+    
+    if (uploadSubtitle) {
+      uploadSubtitle.textContent = 'or';
+      uploadSubtitle.style.display = '';
+    }
+    
+    if (removeBtn) {
+      removeBtn.remove();
+    }
+    
+    // Disable generate button
+    const generateBtn = document.querySelector('.btn-generate');
+    generateBtn.classList.remove('active');
+    generateBtn.disabled = true;
+    
+    showNotification('File removed', 'info');
+  }
+  
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+  
+  function getFileType(mimeType) {
+    const types = {
+      'application/pdf': 'PDF',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+      'application/msword': 'DOC',
+      'text/plain': 'TXT',
+      'image/png': 'PNG',
+      'image/jpeg': 'JPG',
+      'image/jpg': 'JPG'
+    };
+    return types[mimeType] || mimeType;
   }
   
   async function uploadAndConvertFile(file) {
@@ -136,9 +240,15 @@ function initFileUpload() {
     generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
     generateBtn.disabled = true;
     
+    // Show progress in upload area
+    const uploadArea = document.querySelector('.upload-area');
+    const uploadTitle = uploadArea.querySelector('.upload-title');
+    const originalTitle = uploadTitle.textContent;
+    uploadTitle.innerHTML = 'Processing file... <div class="progress-bar"><div class="progress"></div></div>';
+    
     try {
       // Replace with your Railway backend URL
-      const backendUrl = 'examblox-production.up.railway.app';
+      const backendUrl = 'https://your-backend-url.railway.app';
       
       const response = await fetch(`${backendUrl}/convert`, {
         method: 'POST',
@@ -148,20 +258,26 @@ function initFileUpload() {
       const data = await response.json();
       
       if (data.success) {
-        showNotification('File converted successfully!', 'success');
+        showNotification('File converted successfully! Text extracted: ' + data.characterCount + ' characters', 'success');
         console.log('Extracted text:', data.text);
+        
         // Store the extracted text for question generation
         window.extractedText = data.text;
+        
+        // Update UI to show success
+        uploadTitle.innerHTML = `<i class="fas fa-check-circle" style="color: #4CAF50;"></i> Conversion Complete!`;
         
         // Enable question generation options
         enableQuestionOptions();
         
       } else {
         showNotification(data.error || 'Failed to convert file', 'error');
+        uploadTitle.textContent = originalTitle;
       }
     } catch (error) {
       console.error('Upload error:', error);
       showNotification('Network error. Please try again.', 'error');
+      uploadTitle.textContent = originalTitle;
     } finally {
       // Restore button state
       generateBtn.innerHTML = originalText;
@@ -205,6 +321,14 @@ function initMobileMenu() {
     hamburger.classList.toggle('active');
     navLinks.classList.toggle('active');
   });
+  
+  // Close menu when clicking on links
+  document.querySelectorAll('.nav-links a').forEach(link => {
+    link.addEventListener('click', () => {
+      hamburger.classList.remove('active');
+      navLinks.classList.remove('active');
+    });
+  });
 }
 
 // Notification system
@@ -233,14 +357,30 @@ function showNotification(message, type = 'info') {
   }, 5000);
 }
 
-// Modal system (for future login/signup)
-function showModal(type) {
-  // Implementation for modal windows
-  console.log(`Show ${type} modal`);
-}
-
-// Tooltip system
-function showTooltip(message, element) {
-  // Implementation for tooltips
-  console.log(`Show tooltip: ${message}`);
-}
+// Add some CSS for the progress bar
+const progressStyle = document.createElement('style');
+progressStyle.textContent = `
+  .progress-bar {
+    width: 100%;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  
+  .progress {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-light), var(--primary));
+    border-radius: 3px;
+    animation: progressAnimation 2s infinite;
+  }
+  
+  @keyframes progressAnimation {
+    0% { width: 0%; }
+    50% { width: 70%; }
+    100% { width: 100%; }
+  }
+`;
+document.head.appendChild(progressStyle);
