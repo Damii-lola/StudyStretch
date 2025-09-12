@@ -1,5 +1,7 @@
 // script.js
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('ExamBlox script loaded successfully!');
+  
   // Create stars for background
   createStars();
   
@@ -16,6 +18,14 @@ document.addEventListener('DOMContentLoaded', function() {
 // Create starry background
 function createStars() {
   const starsContainer = document.querySelector('.stars');
+  if (!starsContainer) {
+    console.error('Stars container not found!');
+    return;
+  }
+  
+  // Clear existing stars
+  starsContainer.innerHTML = '';
+  
   const starCount = 150;
   
   for (let i = 0; i < starCount; i++) {
@@ -31,6 +41,11 @@ function createStars() {
 // Initialize file upload functionality
 function initFileUpload() {
   const uploadArea = document.querySelector('.upload-area');
+  if (!uploadArea) {
+    console.error('Upload area not found!');
+    return;
+  }
+
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
   fileInput.id = 'file-input';
@@ -55,7 +70,12 @@ function initFileUpload() {
   
   uploadArea.addEventListener('dragenter', function() {
     uploadArea.classList.add('dragover');
-    uploadArea.querySelector('.upload-title').textContent = 'Drop file here...';
+    const uploadTitle = uploadArea.querySelector('.upload-title');
+    if (uploadTitle) uploadTitle.textContent = 'Drop file here...';
+  });
+  
+  uploadArea.addEventListener('dragover', function() {
+    uploadArea.classList.add('dragover');
   });
   
   uploadArea.addEventListener('dragleave', function() {
@@ -77,10 +97,12 @@ function initFileUpload() {
     fileInput.click();
   });
   
-  browseBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    fileInput.click();
-  });
+  if (browseBtn) {
+    browseBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      fileInput.click();
+    });
+  }
   
   fileInput.addEventListener('change', function() {
     if (fileInput.files.length) {
@@ -89,18 +111,21 @@ function initFileUpload() {
   });
   
   // Generate questions button
-  generateBtn.addEventListener('click', function() {
-    if (!selectedFile) {
-      showNotification('Please select a file first', 'error');
-      return;
-    }
-    
-    uploadAndConvertFile(selectedFile);
-  });
+  if (generateBtn) {
+    generateBtn.addEventListener('click', function() {
+      if (!selectedFile) {
+        showNotification('Please select a file first', 'error');
+        return;
+      }
+      
+      uploadAndConvertFile(selectedFile);
+    });
+  }
   
   function updateUploadText() {
     if (!selectedFile) {
-      uploadArea.querySelector('.upload-title').textContent = 'Drag & drop your file here';
+      const uploadTitle = uploadArea.querySelector('.upload-title');
+      if (uploadTitle) uploadTitle.textContent = 'Drag & drop your file here';
     }
   }
   
@@ -135,11 +160,16 @@ function initFileUpload() {
     const uploadSubtitle = uploadArea.querySelector('.upload-subtitle');
     const fileSize = formatFileSize(file.size);
     
-    uploadIcon.className = 'fas fa-file-check';
-    uploadIcon.style.color = '#4CAF50';
-    uploadTitle.textContent = file.name;
-    uploadTitle.style.fontWeight = '600';
-    uploadTitle.style.color = '#4CAF50';
+    if (uploadIcon) {
+      uploadIcon.className = 'fas fa-file-check';
+      uploadIcon.style.color = '#4CAF50';
+    }
+    
+    if (uploadTitle) {
+      uploadTitle.textContent = file.name;
+      uploadTitle.style.fontWeight = '600';
+      uploadTitle.style.color = '#4CAF50';
+    }
     
     if (uploadSubtitle) {
       uploadSubtitle.textContent = `Size: ${fileSize} • Type: ${getFileType(file.type)}`;
@@ -170,8 +200,10 @@ function initFileUpload() {
     }
     
     // Enable generate button
-    generateBtn.classList.add('active');
-    generateBtn.disabled = false;
+    if (generateBtn) {
+      generateBtn.classList.add('active');
+      generateBtn.disabled = false;
+    }
     
     showNotification(`"${file.name}" selected successfully! Click "Generate Questions" to continue.`, 'success');
   }
@@ -180,17 +212,21 @@ function initFileUpload() {
     selectedFile = null;
     fileInput.value = '';
     
-    const uploadArea = document.querySelector('.upload-area');
     const uploadIcon = uploadArea.querySelector('.upload-icon i');
     const uploadTitle = uploadArea.querySelector('.upload-title');
     const uploadSubtitle = uploadArea.querySelector('.upload-subtitle');
     const removeBtn = uploadArea.querySelector('.remove-file');
     
-    uploadIcon.className = 'fas fa-file-upload';
-    uploadIcon.style.color = '';
-    uploadTitle.textContent = 'Drag & drop your file here';
-    uploadTitle.style.fontWeight = '';
-    uploadTitle.style.color = '';
+    if (uploadIcon) {
+      uploadIcon.className = 'fas fa-file-upload';
+      uploadIcon.style.color = '';
+    }
+    
+    if (uploadTitle) {
+      uploadTitle.textContent = 'Drag & drop your file here';
+      uploadTitle.style.fontWeight = '';
+      uploadTitle.style.color = '';
+    }
     
     if (uploadSubtitle) {
       uploadSubtitle.textContent = 'or';
@@ -202,9 +238,10 @@ function initFileUpload() {
     }
     
     // Disable generate button
-    const generateBtn = document.querySelector('.btn-generate');
-    generateBtn.classList.remove('active');
-    generateBtn.disabled = true;
+    if (generateBtn) {
+      generateBtn.classList.remove('active');
+      generateBtn.disabled = true;
+    }
     
     showNotification('File removed', 'info');
   }
@@ -236,52 +273,58 @@ function initFileUpload() {
     
     // Show loading state
     const generateBtn = document.querySelector('.btn-generate');
-    const originalText = generateBtn.innerHTML;
-    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-    generateBtn.disabled = true;
+    const originalText = generateBtn ? generateBtn.innerHTML : '';
+    
+    if (generateBtn) {
+      generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+      generateBtn.disabled = true;
+    }
     
     // Show progress in upload area
-    const uploadArea = document.querySelector('.upload-area');
     const uploadTitle = uploadArea.querySelector('.upload-title');
-    const originalTitle = uploadTitle.textContent;
-    uploadTitle.innerHTML = 'Processing file... <div class="progress-bar"><div class="progress"></div></div>';
+    const originalTitle = uploadTitle ? uploadTitle.textContent : '';
+    
+    if (uploadTitle) {
+      uploadTitle.innerHTML = 'Processing file... <div class="progress-bar"><div class="progress"></div></div>';
+    }
     
     try {
-      // Replace with your Railway backend URL
-      const backendUrl = 'https://your-backend-url.railway.app';
+      // For testing - simulate backend processing
+      console.log('Simulating file upload for:', file.name);
       
-      const response = await fetch(`${backendUrl}/convert`, {
-        method: 'POST',
-        body: formData
-      });
+      // Simulate processing delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const data = await response.json();
+      // For now, we'll simulate success since backend isn't connected
+      const simulatedText = `This is simulated extracted text from ${file.name}. 
+      In a real implementation, this would be the actual text content extracted from your file.
       
-      if (data.success) {
-        showNotification('File converted successfully! Text extracted: ' + data.characterCount + ' characters', 'success');
-        console.log('Extracted text:', data.text);
-        
-        // Store the extracted text for question generation
-        window.extractedText = data.text;
-        
-        // Update UI to show success
+      The backend would process PDF, DOCX, DOC, TXT, PNG, and JPG files and return the extracted text here.`;
+      
+      showNotification('File conversion simulated successfully!', 'success');
+      console.log('Simulated extracted text:', simulatedText);
+      
+      // Store the extracted text for question generation
+      window.extractedText = simulatedText;
+      
+      // Update UI to show success
+      if (uploadTitle) {
         uploadTitle.innerHTML = `<i class="fas fa-check-circle" style="color: #4CAF50;"></i> Conversion Complete!`;
-        
-        // Enable question generation options
-        enableQuestionOptions();
-        
-      } else {
-        showNotification(data.error || 'Failed to convert file', 'error');
-        uploadTitle.textContent = originalTitle;
       }
+      
+      // Enable question generation options
+      enableQuestionOptions();
+      
     } catch (error) {
       console.error('Upload error:', error);
-      showNotification('Network error. Please try again.', 'error');
-      uploadTitle.textContent = originalTitle;
+      showNotification('Error processing file. Please try again.', 'error');
+      if (uploadTitle) uploadTitle.textContent = originalTitle;
     } finally {
       // Restore button state
-      generateBtn.innerHTML = originalText;
-      generateBtn.disabled = false;
+      if (generateBtn) {
+        generateBtn.innerHTML = originalText;
+        generateBtn.disabled = false;
+      }
     }
   }
   
@@ -293,7 +336,9 @@ function initFileUpload() {
     
     // Change button text
     const generateBtn = document.querySelector('.btn-generate');
-    generateBtn.innerHTML = '<i class="fas fa-robot"></i> Generate Questions';
+    if (generateBtn) {
+      generateBtn.innerHTML = '<i class="fas fa-robot"></i> Generate Questions';
+    }
     
     showNotification('File processed! Customize your questions and click Generate.', 'info');
   }
@@ -306,9 +351,11 @@ function initFAQ() {
   faqItems.forEach(item => {
     const question = item.querySelector('.faq-question');
     
-    question.addEventListener('click', () => {
-      item.classList.toggle('active');
-    });
+    if (question) {
+      question.addEventListener('click', () => {
+        item.classList.toggle('active');
+      });
+    }
   });
 }
 
@@ -317,18 +364,20 @@ function initMobileMenu() {
   const hamburger = document.querySelector('.hamburger');
   const navLinks = document.querySelector('.nav-links');
   
-  hamburger.addEventListener('click', () => {
-    hamburger.classList.toggle('active');
-    navLinks.classList.toggle('active');
-  });
-  
-  // Close menu when clicking on links
-  document.querySelectorAll('.nav-links a').forEach(link => {
-    link.addEventListener('click', () => {
-      hamburger.classList.remove('active');
-      navLinks.classList.remove('active');
+  if (hamburger && navLinks) {
+    hamburger.addEventListener('click', () => {
+      hamburger.classList.toggle('active');
+      navLinks.classList.toggle('active');
     });
-  });
+    
+    // Close menu when clicking on links
+    document.querySelectorAll('.nav-links a').forEach(link => {
+      link.addEventListener('click', () => {
+        hamburger.classList.remove('active');
+        navLinks.classList.remove('active');
+      });
+    });
+  }
 }
 
 // Notification system
@@ -347,6 +396,46 @@ function showNotification(message, type = 'info') {
     <button onclick="this.parentElement.remove()">&times;</button>
   `;
   
+  // Add styles if they don't exist
+  if (!document.querySelector('#notification-styles')) {
+    const style = document.createElement('style');
+    style.id = 'notification-styles';
+    style.textContent = `
+      .notification {
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 8px;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-width: 300px;
+        z-index: 10000;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        transform: translateX(100%);
+        animation: slideIn 0.3s forwards;
+        backdrop-filter: blur(10px);
+      }
+      .notification-success { background: rgba(76, 175, 80, 0.9); }
+      .notification-error { background: rgba(244, 67, 54, 0.9); }
+      .notification-info { background: rgba(106, 75, 255, 0.9); }
+      .notification button {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        margin-left: 15px;
+      }
+      @keyframes slideIn {
+        to { transform: translateX(0); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
   document.body.appendChild(notification);
   
   // Auto remove after 5 seconds
@@ -357,30 +446,58 @@ function showNotification(message, type = 'info') {
   }, 5000);
 }
 
-// Add some CSS for the progress bar
-const progressStyle = document.createElement('style');
-progressStyle.textContent = `
-  .progress-bar {
-    width: 100%;
-    height: 5px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    margin-top: 10px;
-    overflow: hidden;
-  }
-  
-  .progress {
-    width: 0%;
-    height: 100%;
-    background: linear-gradient(90deg, var(--primary-light), var(--primary));
-    border-radius: 3px;
-    animation: progressAnimation 2s infinite;
-  }
-  
-  @keyframes progressAnimation {
-    0% { width: 0%; }
-    50% { width: 70%; }
-    100% { width: 100%; }
-  }
-`;
-document.head.appendChild(progressStyle);
+// Add progress bar styles
+if (!document.querySelector('#progress-styles')) {
+  const progressStyle = document.createElement('style');
+  progressStyle.id = 'progress-styles';
+  progressStyle.textContent = `
+    .progress-bar {
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    
+    .progress {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary-light), var(--primary));
+      border-radius: 3px;
+      animation: progressAnimation 2s infinite;
+    }
+    
+    @keyframes progressAnimation {
+      0% { width: 0%; }
+      50% { width: 70%; }
+      100% { width: 100%; }
+    }
+    
+    /* Enhanced upload area styles */
+    .upload-area.dragover {
+      background: rgba(106, 75, 255, 0.1) !important;
+      border: 2px dashed var(--primary-light) !important;
+      transform: scale(1.02) !important;
+    }
+    
+    .upload-area.dragover .upload-icon i {
+      color: var(--primary-light) !important;
+      transform: scale(1.1);
+    }
+    
+    .upload-area.dragover .upload-title {
+      color: var(--primary-light) !important;
+    }
+    
+    .remove-file {
+      transition: all 0.3s ease;
+    }
+    
+    .remove-file:hover {
+      background: rgba(244, 67, 54, 0.3) !important;
+      transform: translateY(-1px);
+    }
+  `;
+  document.head.appendChild(progressStyle);
+}
