@@ -138,7 +138,7 @@ function initFileUpload() {
     
     try {
       // Replace with your Railway backend URL
-      const backendUrl = 'https://your-backend-url.railway.app';
+      const backendUrl = 'examblox-production.up.railway.app';
       
       const response = await fetch(`${backendUrl}/convert`, {
         method: 'POST',
