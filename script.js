@@ -86,9 +86,15 @@ function initFileUpload() {
     }
   });
   
-  // Click to select file
-  uploadArea.addEventListener('click', function() {
-    fileInput.click();
+  // Click to select file - only trigger on the upload area itself, not buttons
+  uploadArea.addEventListener('click', function(e) {
+    // Only trigger if clicking on the upload area itself, not buttons
+    if (e.target === uploadArea || 
+        e.target.classList.contains('upload-icon') ||
+        e.target.classList.contains('upload-title') ||
+        e.target.classList.contains('upload-subtitle')) {
+      fileInput.click();
+    }
   });
   
   if (browseBtn) {
@@ -134,10 +140,17 @@ function initFileUpload() {
     
     selectedFile = file;
     
-    // Read file content for preview
+    // Read file content for preview - handle binary files differently
     try {
-      fileContent = await readFileContent(file);
-      console.log('File content preview:', fileContent.substring(0, 200) + '...');
+      if (file.type === 'text/plain') {
+        // For text files, read the actual content
+        fileContent = await readTextFile(file);
+        console.log('Text file content:', fileContent.substring(0, 200));
+      } else {
+        // For binary files (PDF, DOCX, DOC, images), show appropriate message
+        fileContent = getFilePreviewMessage(file);
+        console.log('Binary file preview message');
+      }
     } catch (error) {
       console.error('Error reading file:', error);
       showNotification('Error reading file content', 'error');
@@ -150,31 +163,35 @@ function initFileUpload() {
     showNotification(`"${file.name}" selected! Click "Preview Content" to verify.`, 'success');
   }
   
-  async function readFileContent(file) {
+  async function readTextFile(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
-      reader.onload = function(e) {
-        if (file.type.includes('text') || file.type.includes('pdf') || 
-            file.type.includes('word') || file.type.includes('document')) {
-          resolve(e.target.result);
-        } else if (file.type.includes('image')) {
-          resolve(`[Image File: ${file.name}]\nText extraction will happen on the server using OCR.`);
-        } else {
-          resolve(`[File: ${file.name}]\nContent will be extracted on the server.`);
-        }
-      };
-      
-      reader.onerror = function() {
-        reject(new Error('Failed to read file'));
-      };
-      
-      if (file.type.includes('text') || file.type === 'application/pdf') {
-        reader.readAsText(file);
-      } else {
-        reader.readAsDataURL(file);
-      }
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsText(file);
     });
+  }
+  
+  function getFilePreviewMessage(file) {
+    const fileType = getFileType(file.type);
+    
+    switch(fileType) {
+      case 'PDF':
+        return `PDF File: ${file.name}\n\nPDF files contain binary data that cannot be displayed directly in the browser. The actual text extraction will be performed on the server using specialized libraries.\n\nFile will be processed to extract: text content, headings, paragraphs, and other readable content.`;
+      
+      case 'DOCX':
+        return `Word Document (DOCX): ${file.name}\n\nDOCX files are compressed archives containing XML data. The actual text extraction will be performed on the server using specialized libraries.\n\nFile will be processed to extract: text content, headings, paragraphs, lists, and other document elements.`;
+      
+      case 'DOC':
+        return `Word Document (DOC): ${file.name}\n\nDOC files use a binary format that cannot be displayed directly in the browser. The actual text extraction will be performed on the server using specialized libraries.\n\nFile will be processed to extract: text content and document structure.`;
+      
+      case 'PNG':
+      case 'JPG':
+        return `Image File: ${file.name}\n\nImage files contain pixel data. Text extraction from images requires Optical Character Recognition (OCR) which will be performed on the server.\n\nFile will be processed using OCR to extract any readable text from the image.`;
+      
+      default:
+        return `File: ${file.name}\n\nThis file type requires server-side processing for text extraction.`;
+    }
   }
   
   function updateFileUI(file) {
@@ -198,7 +215,10 @@ function initFileUpload() {
       uploadSubtitle.textContent = `Size: ${fileSize} • Type: ${getFileType(file.type)} • Click to preview`;
       uploadSubtitle.style.cursor = 'pointer';
       uploadSubtitle.style.color = '#6a4bff';
-      uploadSubtitle.onclick = () => showFilePreview(file.name, fileContent);
+      uploadSubtitle.onclick = (e) => {
+        e.stopPropagation(); // Prevent triggering upload area click
+        showFilePreview(file.name, fileContent);
+      };
     }
     
     // Add action buttons
@@ -235,7 +255,10 @@ function initFileUpload() {
     previewBtn.style.borderRadius = '4px';
     previewBtn.style.cursor = 'pointer';
     previewBtn.style.fontSize = '12px';
-    previewBtn.onclick = () => showFilePreview(selectedFile.name, fileContent);
+    previewBtn.onclick = (e) => {
+      e.stopPropagation(); // Prevent triggering upload area click
+      showFilePreview(selectedFile.name, fileContent);
+    };
     
     // Remove button
     const removeBtn = document.createElement('button');
@@ -248,7 +271,10 @@ function initFileUpload() {
     removeBtn.style.borderRadius = '4px';
     removeBtn.style.cursor = 'pointer';
     removeBtn.style.fontSize = '12px';
-    removeBtn.onclick = resetFileSelection;
+    removeBtn.onclick = (e) => {
+      e.stopPropagation(); // Prevent triggering upload area click
+      resetFileSelection();
+    };
     
     buttonContainer.appendChild(previewBtn);
     buttonContainer.appendChild(removeBtn);
@@ -341,16 +367,17 @@ function initFileUpload() {
       // Simulate processing
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const simulatedText = simulateTextExtraction(file.name, fileContent);
-      showNotification(`File processed! Extracted ${simulatedText.length} characters.`, 'success');
+      // For simulation, create appropriate content based on file type
+      const simulatedText = simulateTextExtraction(file.name, file.type);
+      showNotification(`File processed! Ready to generate questions.`, 'success');
       
       window.extractedText = simulatedText;
       
       if (uploadTitle) {
-        uploadTitle.innerHTML = `<i class="fas fa-check-circle" style="color: #4CAF50;"></i> Conversion Complete!`;
+        uploadTitle.innerHTML = `<i class="fas fa-check-circle" style="color: #4CAF50;"></i> Ready for Questions!`;
       }
       
-      showFilePreview('Extracted Text Preview', simulatedText, true);
+      showFilePreview('Processing Complete', simulatedText, true);
       enableQuestionOptions();
       
     } catch (error) {
@@ -365,21 +392,28 @@ function initFileUpload() {
     }
   }
   
-  function simulateTextExtraction(filename, content) {
-    if (filename.endsWith('.pdf')) {
-      return `PDF EXTRACTION SIMULATION:\n\n${content.substring(0, 1000)}...\n\n[Simulated PDF extraction]`;
-    }
-    else if (filename.endsWith('.docx')) {
-      return `DOCX EXTRACTION SIMULATION:\n\n${content.substring(0, 1000)}...\n\n[Simulated DOCX extraction]`;
-    }
-    else if (filename.endsWith('.txt')) {
-      return `TEXT FILE CONTENT:\n\n${content}\n\n[Actual file content]`;
-    }
-    else if (filename.match(/\.(jpg|jpeg|png)$/i)) {
-      return `IMAGE OCR SIMULATION:\n\nSimulated text extraction from image using OCR.\n\nImage: ${filename}\n\n[Simulated OCR output]`;
-    }
-    else {
-      return `EXTRACTED TEXT FROM ${filename.toUpperCase()}:\n\n${content.substring(0, 1500)}...\n\n[Simulated extraction]`;
+  function simulateTextExtraction(filename, fileType) {
+    const type = getFileType(fileType);
+    
+    switch(type) {
+      case 'PDF':
+        return `PDF FILE PROCESSED: ${filename}\n\nThe PDF has been successfully processed and text content has been extracted.\n\nIn a real implementation, the backend would use pdf-parse library to extract:\n- Text content\n- Headings and paragraphs\n- Document structure\n- Readable content from the PDF`;
+      
+      case 'DOCX':
+        return `DOCX FILE PROCESSED: ${filename}\n\nThe Word document has been successfully processed and text content has been extracted.\n\nIn a real implementation, the backend would use mammoth library to extract:\n- Text content\n- Document headings\n- Paragraphs and lists\n- Document structure`;
+      
+      case 'DOC':
+        return `DOC FILE PROCESSED: ${filename}\n\nThe Word document has been successfully processed and text content has been extracted.\n\nIn a real implementation, the backend would use textract library to extract readable content from the binary DOC format.`;
+      
+      case 'PNG':
+      case 'JPG':
+        return `IMAGE PROCESSED: ${filename}\n\nThe image has been successfully processed using OCR technology.\n\nIn a real implementation, the backend would use Tesseract.js to perform:\n- Optical Character Recognition\n- Text extraction from images\n- Text cleaning and formatting`;
+      
+      case 'TXT':
+        return `TEXT FILE CONTENT:\n\n${fileContent}\n\nThis is the actual content extracted from your text file.`;
+      
+      default:
+        return `FILE PROCESSED: ${filename}\n\nThe file has been successfully processed and is ready for question generation.`;
     }
   }
   
@@ -404,11 +438,11 @@ function showFilePreview(filename, content, isExtracted = false) {
   modal.innerHTML = `
     <div class="modal-content">
       <span class="close-modal">&times;</span>
-      <h2>${isExtracted ? 'Extracted Text Preview' : 'File Content Preview'}</h2>
+      <h2>${isExtracted ? 'Processing Results' : 'File Content Preview'}</h2>
       <p class="modal-subtitle">File: ${filename}</p>
       <div class="file-preview">
         <div class="preview-header">
-          <span>Content (${content.length} characters)</span>
+          <span>${isExtracted ? 'Processing Information' : 'File Information'}</span>
           <button class="copy-btn">
             <i class="fas fa-copy"></i> Copy
           </button>
@@ -446,14 +480,13 @@ function showFilePreview(filename, content, isExtracted = false) {
 
 function formatPreviewContent(content) {
   const escapedContent = content
-    .substring(0, 5000)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
   
-  return escapedContent + (content.length > 5000 ? '\n\n... (content truncated)' : '');
+  return escapedContent;
 }
 
 function copyToClipboard(text) {
@@ -517,6 +550,7 @@ function initModals() {
         color: #9b6aff;
         margin-top: -10px;
         margin-bottom: 20px;
+        font-size: 14px;
       }
       
       .file-preview {
@@ -547,20 +581,22 @@ function initModals() {
         border-radius: 4px;
         cursor: pointer;
         font-size: 12px;
+        transition: all 0.3s ease;
       }
       
       .copy-btn:hover {
         background: rgba(106, 75, 255, 0.3);
+        transform: translateY(-1px);
       }
       
       .preview-content {
-        padding: 15px;
+        padding: 20px;
         overflow-y: auto;
         flex: 1;
         white-space: pre-wrap;
-        font-family: 'Courier New', monospace;
+        font-family: 'Poppins', sans-serif;
         font-size: 14px;
-        line-height: 1.5;
+        line-height: 1.6;
         color: #eee;
       }
       
@@ -570,6 +606,7 @@ function initModals() {
         padding: 15px;
         background: rgba(0, 0, 0, 0.2);
         border-radius: 8px;
+        margin-top: 10px;
       }
       
       .stat {
@@ -577,11 +614,16 @@ function initModals() {
         flex-direction: column;
         align-items: center;
         color: #9b6aff;
+        font-size: 12px;
       }
       
       .stat i {
-        font-size: 20px;
+        font-size: 18px;
         margin-bottom: 5px;
+      }
+      
+      .stat span {
+        font-weight: 500;
       }
     `;
     document.head.appendChild(style);
