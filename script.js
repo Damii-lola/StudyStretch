@@ -1,4 +1,44 @@
 // script.js
+const BACKEND_URL = 'examblox-production.up.railway.app'; // REPLACE with your actual Railway URL
+
+// Update the uploadAndConvertFile function:
+async function uploadAndConvertFile(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const generateBtn = document.querySelector('.btn-generate');
+  const originalText = generateBtn.innerHTML;
+  
+  generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+  generateBtn.disabled = true;
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/convert`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showNotification('File converted successfully!', 'success');
+      window.extractedText = data.text;
+      
+      // Enable question generation options
+      enableQuestionOptions();
+      
+    } else {
+      showNotification(data.error || 'Failed to convert file', 'error');
+    }
+  } catch (error) {
+    console.error('Upload error:', error);
+    showNotification('Network error. Please try again.', 'error');
+  } finally {
+    generateBtn.innerHTML = originalText;
+    generateBtn.disabled = false;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   console.log('ExamBlox script loaded successfully!');
   
@@ -792,4 +832,233 @@ if (!document.querySelector('#progress-styles')) {
     }
   `;
   document.head.appendChild(progressStyle);
+}
+
+// Add to your existing script.js
+
+// AI Question Generation
+async function generateQuestions() {
+  if (!window.extractedText) {
+    showNotification('Please process a file first', 'error');
+    return;
+  }
+
+  const questionType = document.querySelector('select:nth-of-type(1)').value;
+  const numberOfQuestions = document.querySelector('input[type="range"]').value;
+  const difficultyLevel = document.querySelector('select:nth-of-type(2)').value;
+
+  const generateBtn = document.querySelector('.btn-generate');
+  const originalText = generateBtn.innerHTML;
+  
+  generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating Questions...';
+  generateBtn.disabled = true;
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/generate-questions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: window.extractedText,
+        questionType: questionType,
+        numberOfQuestions: parseInt(numberOfQuestions),
+        difficultyLevel: difficultyLevel
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showNotification(`Successfully generated ${data.totalQuestions} questions!`, 'success');
+      displayQuestions(data.questions);
+    } else {
+      showNotification(data.error || 'Failed to generate questions', 'error');
+    }
+
+  } catch (error) {
+    console.error('Question generation error:', error);
+    showNotification('Error generating questions. Please try again.', 'error');
+  } finally {
+    generateBtn.innerHTML = originalText;
+    generateBtn.disabled = false;
+  }
+}
+
+function displayQuestions(questions) {
+  // Create questions container
+  const questionsContainer = document.createElement('div');
+  questionsContainer.className = 'questions-container';
+  questionsContainer.innerHTML = `
+    <div class="questions-header">
+      <h3>Generated Questions</h3>
+      <button class="close-questions">&times;</button>
+    </div>
+    <div class="questions-list">
+      ${questions.map((q, index) => renderQuestion(q, index)).join('')}
+    </div>
+  `;
+
+  // Add styles if not already added
+  if (!document.querySelector('#questions-styles')) {
+    const style = document.createElement('style');
+    style.id = 'questions-styles';
+    style.textContent = `
+      .questions-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #1e1c2c;
+        border: 2px solid #6a4bff;
+        border-radius: 15px;
+        padding: 20px;
+        max-width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        z-index: 10001;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      }
+      
+      .questions-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #6a4bff;
+      }
+      
+      .questions-header h3 {
+        color: #9b6aff;
+        margin: 0;
+      }
+      
+      .close-questions {
+        background: none;
+        border: none;
+        color: #eee;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+      }
+      
+      .question-item {
+        background: rgba(106, 75, 255, 0.1);
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-left: 4px solid #6a4bff;
+      }
+      
+      .question-text {
+        font-weight: 600;
+        color: #eee;
+        margin-bottom: 10px;
+      }
+      
+      .question-type {
+        display: inline-block;
+        background: #6a4bff;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        margin-bottom: 10px;
+      }
+      
+      .options-list {
+        list-style: none;
+        padding: 0;
+        margin: 10px 0;
+      }
+      
+      .options-list li {
+        padding: 8px;
+        margin: 5px 0;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 5px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      
+      .correct-answer {
+        background: rgba(76, 175, 80, 0.2) !important;
+        border-color: #4CAF50 !important;
+        color: #4CAF50;
+        font-weight: 600;
+      }
+      
+      .answer-section {
+        background: rgba(76, 175, 80, 0.1);
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 10px;
+        border-left: 3px solid #4CAF50;
+      }
+      
+      .explanation {
+        font-style: italic;
+        color: #ccc;
+        margin-top: 5px;
+        font-size: 14px;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Add close functionality
+  questionsContainer.querySelector('.close-questions').onclick = () => {
+    questionsContainer.remove();
+  };
+
+  document.body.appendChild(questionsContainer);
+}
+
+function renderQuestion(question, index) {
+  let optionsHtml = '';
+  
+  if (question.options && question.options.length > 0) {
+    optionsHtml = `
+      <ul class="options-list">
+        ${question.options.map(option => `
+          <li class="${option === question.answer ? 'correct-answer' : ''}">
+            ${option}
+          </li>
+        `).join('')}
+      </ul>
+    `;
+  }
+
+  return `
+    <div class="question-item">
+      <span class="question-type">${question.type}</span>
+      <div class="question-text">${index + 1}. ${question.question}</div>
+      ${optionsHtml}
+      <div class="answer-section">
+        <strong>Answer:</strong> ${question.answer}
+        ${question.explanation ? `<div class="explanation">${question.explanation}</div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+// Update the generate button click handler to use the new function
+// Replace this in your initFileUpload function:
+if (generateBtn) {
+  generateBtn.addEventListener('click', function() {
+    if (!selectedFile) {
+      showNotification('Please select a file first', 'error');
+      return;
+    }
+    
+    if (window.extractedText) {
+      // If we already have extracted text, generate questions directly
+      generateQuestions();
+    } else {
+      // Otherwise, process the file first
+      uploadAndConvertFile(selectedFile);
+    }
+  });
 }
