@@ -1067,3 +1067,55 @@ footer {
   max-width: 200px;
   text-align: center;
 }
+
+/* Enhanced upload area styles */
+.upload-area.dragover {
+  background: rgba(106, 75, 255, 0.1) !important;
+  border: 2px dashed var(--primary-light) !important;
+  transform: scale(1.02) !important;
+}
+
+.upload-area.dragover .upload-icon i {
+  color: var(--primary-light) !important;
+  transform: scale(1.1);
+}
+
+.upload-area.dragover .upload-title {
+  color: var(--primary-light) !important;
+}
+
+/* File selection styles */
+.upload-area.has-file {
+  border-color: var(--success) !important;
+}
+
+.remove-file {
+  transition: all 0.3s ease;
+}
+
+.remove-file:hover {
+  background: rgba(244, 67, 54, 0.3) !important;
+  transform: translateY(-1px);
+}
+
+/* Progress bar animation */
+@keyframes progressAnimation {
+  0% { width: 0%; }
+  50% { width: 70%; }
+  100% { width: 100%; }
+}
+
+/* Mobile responsiveness for upload area */
+@media (max-width: 768px) {
+  .upload-area {
+    padding: 20px 15px !important;
+  }
+  
+  .upload-icon {
+    font-size: 2rem !important;
+  }
+  
+  .upload-title {
+    font-size: 0.9rem !important;
+  }
+}
