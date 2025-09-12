@@ -21,14 +21,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // Create starry background
 function createStars() {
   const starsContainer = document.querySelector('.stars');
-  if (!starsContainer) {
-    console.error('Stars container not found!');
-    return;
-  }
+  if (!starsContainer) return;
   
-  // Clear existing stars
   starsContainer.innerHTML = '';
-  
   const starCount = 150;
   
   for (let i = 0; i < starCount; i++) {
@@ -44,10 +39,7 @@ function createStars() {
 // Initialize file upload functionality
 function initFileUpload() {
   const uploadArea = document.querySelector('.upload-area');
-  if (!uploadArea) {
-    console.error('Upload area not found!');
-    return;
-  }
+  if (!uploadArea) return;
 
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
@@ -89,11 +81,9 @@ function initFileUpload() {
   
   uploadArea.addEventListener('drop', function(e) {
     uploadArea.classList.remove('dragover');
-    
     if (e.dataTransfer.files.length) {
       handleFileSelect(e.dataTransfer.files[0]);
     }
-    updateUploadText();
   });
   
   // Click to select file
@@ -121,28 +111,15 @@ function initFileUpload() {
         showNotification('Please select a file first', 'error');
         return;
       }
-      
       uploadAndConvertFile(selectedFile);
     });
-  }
-  
-  function updateUploadText() {
-    if (!selectedFile) {
-      const uploadTitle = uploadArea.querySelector('.upload-title');
-      if (uploadTitle) uploadTitle.textContent = 'Drag & drop your file here';
-    }
   }
   
   async function handleFileSelect(file) {
     // Validate file type
     const validTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/msword',
-      'text/plain',
-      'image/png',
-      'image/jpeg',
-      'image/jpg'
+      'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword', 'text/plain', 'image/png', 'image/jpeg', 'image/jpg'
     ];
     
     if (!validTypes.includes(file.type)) {
@@ -150,7 +127,6 @@ function initFileUpload() {
       return;
     }
     
-    // Validate file size (10MB max)
     if (file.size > 10 * 1024 * 1024) {
       showNotification('File too large. Maximum size is 10MB.', 'error');
       return;
@@ -158,7 +134,7 @@ function initFileUpload() {
     
     selectedFile = file;
     
-    // Read file content immediately for preview
+    // Read file content for preview
     try {
       fileContent = await readFileContent(file);
       console.log('File content preview:', fileContent.substring(0, 200) + '...');
@@ -168,7 +144,40 @@ function initFileUpload() {
       return;
     }
     
-    // Update UI to show file is selected
+    // Update UI
+    updateFileUI(file);
+    
+    showNotification(`"${file.name}" selected! Click "Preview Content" to verify.`, 'success');
+  }
+  
+  async function readFileContent(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = function(e) {
+        if (file.type.includes('text') || file.type.includes('pdf') || 
+            file.type.includes('word') || file.type.includes('document')) {
+          resolve(e.target.result);
+        } else if (file.type.includes('image')) {
+          resolve(`[Image File: ${file.name}]\nText extraction will happen on the server using OCR.`);
+        } else {
+          resolve(`[File: ${file.name}]\nContent will be extracted on the server.`);
+        }
+      };
+      
+      reader.onerror = function() {
+        reject(new Error('Failed to read file'));
+      };
+      
+      if (file.type.includes('text') || file.type === 'application/pdf') {
+        reader.readAsText(file);
+      } else {
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+  
+  function updateFileUI(file) {
     const uploadIcon = uploadArea.querySelector('.upload-icon i');
     const uploadTitle = uploadArea.querySelector('.upload-title');
     const uploadSubtitle = uploadArea.querySelector('.upload-subtitle');
@@ -187,112 +196,81 @@ function initFileUpload() {
     
     if (uploadSubtitle) {
       uploadSubtitle.textContent = `Size: ${fileSize} • Type: ${getFileType(file.type)} • Click to preview`;
-      uploadSubtitle.style.display = 'block';
       uploadSubtitle.style.cursor = 'pointer';
       uploadSubtitle.style.color = '#6a4bff';
       uploadSubtitle.onclick = () => showFilePreview(file.name, fileContent);
     }
     
-    // Create a remove file button
-    let removeBtn = uploadArea.querySelector('.remove-file');
-    if (!removeBtn) {
-      removeBtn = document.createElement('button');
-      removeBtn.className = 'remove-file';
-      removeBtn.innerHTML = '<i class="fas fa-times"></i> Remove';
-      removeBtn.style.marginTop = '10px';
-      removeBtn.style.padding = '5px 10px';
-      removeBtn.style.background = 'rgba(244, 67, 54, 0.2)';
-      removeBtn.style.color = '#f44336';
-      removeBtn.style.border = '1px solid #f44336';
-      removeBtn.style.borderRadius = '4px';
-      removeBtn.style.cursor = 'pointer';
-      removeBtn.style.fontSize = '12px';
-      
-      removeBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        resetFileSelection();
-      });
-      
-      uploadArea.appendChild(removeBtn);
-    }
-    
-    // Add preview button
-    let previewBtn = uploadArea.querySelector('.preview-file');
-    if (!previewBtn) {
-      previewBtn = document.createElement('button');
-      previewBtn.className = 'preview-file';
-      previewBtn.innerHTML = '<i class="fas fa-eye"></i> Preview Content';
-      previewBtn.style.marginTop = '10px';
-      previewBtn.style.marginRight = '10px';
-      previewBtn.style.padding = '5px 10px';
-      previewBtn.style.background = 'rgba(106, 75, 255, 0.2)';
-      previewBtn.style.color = '#6a4bff';
-      previewBtn.style.border = '1px solid #6a4bff';
-      previewBtn.style.borderRadius = '4px';
-      previewBtn.style.cursor = 'pointer';
-      previewBtn.style.fontSize = '12px';
-      
-      previewBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        showFilePreview(file.name, fileContent);
-      });
-      
-      uploadArea.appendChild(previewBtn);
-    }
+    // Add action buttons
+    addActionButtons();
     
     // Enable generate button
+    const generateBtn = document.querySelector('.btn-generate');
     if (generateBtn) {
       generateBtn.classList.add('active');
       generateBtn.disabled = false;
     }
-    
-    showNotification(`"${file.name}" selected successfully! Click "Preview Content" to verify extraction.`, 'success');
   }
   
-  async function readFileContent(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = function(e) {
-        // For text-based files
-        if (file.type.includes('text') || 
-            file.type.includes('pdf') || 
-            file.type.includes('word') ||
-            file.type.includes('document')) {
-          resolve(e.target.result);
-        } 
-        // For images, we can't read text directly in frontend
-        else if (file.type.includes('image')) {
-          resolve(`[Image File: ${file.name}]\nText extraction will happen on the server using OCR.`);
-        }
-        else {
-          resolve(`[Binary File: ${file.name}]\nContent will be extracted on the server.`);
-        }
-      };
-      
-      reader.onerror = function() {
-        reject(new Error('Failed to read file'));
-      };
-      
-      // Read based on file type
-      if (file.type.includes('text') || file.type === 'application/pdf') {
-        reader.readAsText(file);
-      } else {
-        reader.readAsDataURL(file); // For binary files
-      }
-    });
+  function addActionButtons() {
+    // Remove existing buttons
+    removeActionButtons();
+    
+    // Create button container
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'action-buttons';
+    buttonContainer.style.marginTop = '15px';
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.gap = '10px';
+    buttonContainer.style.justifyContent = 'center';
+    
+    // Preview button
+    const previewBtn = document.createElement('button');
+    previewBtn.className = 'preview-file';
+    previewBtn.innerHTML = '<i class="fas fa-eye"></i> Preview Content';
+    previewBtn.style.padding = '8px 15px';
+    previewBtn.style.background = 'rgba(106, 75, 255, 0.2)';
+    previewBtn.style.color = '#6a4bff';
+    previewBtn.style.border = '1px solid #6a4bff';
+    previewBtn.style.borderRadius = '4px';
+    previewBtn.style.cursor = 'pointer';
+    previewBtn.style.fontSize = '12px';
+    previewBtn.onclick = () => showFilePreview(selectedFile.name, fileContent);
+    
+    // Remove button
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-file';
+    removeBtn.innerHTML = '<i class="fas fa-times"></i> Remove';
+    removeBtn.style.padding = '8px 15px';
+    removeBtn.style.background = 'rgba(244, 67, 54, 0.2)';
+    removeBtn.style.color = '#f44336';
+    removeBtn.style.border = '1px solid #f44336';
+    removeBtn.style.borderRadius = '4px';
+    removeBtn.style.cursor = 'pointer';
+    removeBtn.style.fontSize = '12px';
+    removeBtn.onclick = resetFileSelection;
+    
+    buttonContainer.appendChild(previewBtn);
+    buttonContainer.appendChild(removeBtn);
+    uploadArea.appendChild(buttonContainer);
+  }
+  
+  function removeActionButtons() {
+    const existingButtons = uploadArea.querySelector('.action-buttons');
+    if (existingButtons) {
+      existingButtons.remove();
+    }
   }
   
   function resetFileSelection() {
     selectedFile = null;
     fileContent = '';
-    fileInput.value = '';
+    const fileInput = document.getElementById('file-input');
+    if (fileInput) fileInput.value = '';
     
     const uploadIcon = uploadArea.querySelector('.upload-icon i');
     const uploadTitle = uploadArea.querySelector('.upload-title');
     const uploadSubtitle = uploadArea.querySelector('.upload-subtitle');
-    const removeBtn = uploadArea.querySelector('.remove-file');
-    const previewBtn = uploadArea.querySelector('.preview-file');
     
     if (uploadIcon) {
       uploadIcon.className = 'fas fa-file-upload';
@@ -307,16 +285,14 @@ function initFileUpload() {
     
     if (uploadSubtitle) {
       uploadSubtitle.textContent = 'or';
-      uploadSubtitle.style.display = '';
       uploadSubtitle.style.cursor = '';
       uploadSubtitle.style.color = '';
       uploadSubtitle.onclick = null;
     }
     
-    if (removeBtn) removeBtn.remove();
-    if (previewBtn) previewBtn.remove();
+    removeActionButtons();
     
-    // Disable generate button
+    const generateBtn = document.querySelector('.btn-generate');
     if (generateBtn) {
       generateBtn.classList.remove('active');
       generateBtn.disabled = true;
@@ -347,52 +323,34 @@ function initFileUpload() {
   }
   
   async function uploadAndConvertFile(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    // Show loading state
     const generateBtn = document.querySelector('.btn-generate');
+    const uploadTitle = uploadArea.querySelector('.upload-title');
     const originalText = generateBtn ? generateBtn.innerHTML : '';
+    const originalTitle = uploadTitle ? uploadTitle.textContent : '';
     
     if (generateBtn) {
       generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
       generateBtn.disabled = true;
     }
     
-    // Show progress in upload area
-    const uploadTitle = uploadArea.querySelector('.upload-title');
-    const originalTitle = uploadTitle ? uploadTitle.textContent : '';
-    
     if (uploadTitle) {
       uploadTitle.innerHTML = 'Processing file... <div class="progress-bar"><div class="progress"></div></div>';
     }
     
     try {
-      // For testing - simulate backend processing
-      console.log('Simulating file processing for:', file.name);
-      console.log('File content (first 500 chars):', fileContent.substring(0, 500));
-      
-      // Simulate processing delay
+      // Simulate processing
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Simulate extracted text (in real app, this comes from backend)
       const simulatedText = simulateTextExtraction(file.name, fileContent);
+      showNotification(`File processed! Extracted ${simulatedText.length} characters.`, 'success');
       
-      showNotification(`File processed successfully! Extracted ${simulatedText.length} characters.`, 'success');
-      console.log('Simulated extracted text (first 500 chars):', simulatedText.substring(0, 500));
-      
-      // Store the extracted text for question generation
       window.extractedText = simulatedText;
       
-      // Update UI to show success
       if (uploadTitle) {
         uploadTitle.innerHTML = `<i class="fas fa-check-circle" style="color: #4CAF50;"></i> Conversion Complete!`;
       }
       
-      // Show preview of extracted text
       showFilePreview('Extracted Text Preview', simulatedText, true);
-      
-      // Enable question generation options
       enableQuestionOptions();
       
     } catch (error) {
@@ -400,7 +358,6 @@ function initFileUpload() {
       showNotification('Error processing file. Please try again.', 'error');
       if (uploadTitle) uploadTitle.textContent = originalTitle;
     } finally {
-      // Restore button state
       if (generateBtn) {
         generateBtn.innerHTML = originalText;
         generateBtn.disabled = false;
@@ -409,31 +366,28 @@ function initFileUpload() {
   }
   
   function simulateTextExtraction(filename, content) {
-    // Simulate different extraction based on file type
     if (filename.endsWith('.pdf')) {
-      return `PDF EXTRACTION SIMULATION:\n\n${content.substring(0, 1000)}...\n\n[This is simulated PDF text extraction. Real backend would use pdf-parse library]`;
+      return `PDF EXTRACTION SIMULATION:\n\n${content.substring(0, 1000)}...\n\n[Simulated PDF extraction]`;
     }
     else if (filename.endsWith('.docx')) {
-      return `DOCX EXTRACTION SIMULATION:\n\n${content.substring(0, 1000)}...\n\n[This is simulated DOCX text extraction. Real backend would use mammoth library]`;
+      return `DOCX EXTRACTION SIMULATION:\n\n${content.substring(0, 1000)}...\n\n[Simulated DOCX extraction]`;
     }
     else if (filename.endsWith('.txt')) {
-      return `TEXT FILE CONTENT:\n\n${content}\n\n[This is the actual file content from the text file]`;
+      return `TEXT FILE CONTENT:\n\n${content}\n\n[Actual file content]`;
     }
     else if (filename.match(/\.(jpg|jpeg|png)$/i)) {
-      return `IMAGE OCR SIMULATION:\n\nThis is a simulation of text that would be extracted from your image using OCR technology.\n\nThe actual backend would use Tesseract.js to perform optical character recognition on images and extract any readable text.\n\nImage: ${filename}\n\n[This is simulated OCR output. Real backend would process the image and extract actual text]`;
+      return `IMAGE OCR SIMULATION:\n\nSimulated text extraction from image using OCR.\n\nImage: ${filename}\n\n[Simulated OCR output]`;
     }
     else {
-      return `EXTRACTED TEXT FROM ${filename.toUpperCase()}:\n\n${content.substring(0, 1500)}...\n\n[This is simulated text extraction]`;
+      return `EXTRACTED TEXT FROM ${filename.toUpperCase()}:\n\n${content.substring(0, 1500)}...\n\n[Simulated extraction]`;
     }
   }
   
   function enableQuestionOptions() {
-    // Enable all disabled form elements
     document.querySelectorAll('select, input').forEach(el => {
       el.disabled = false;
     });
     
-    // Change button text
     const generateBtn = document.querySelector('.btn-generate');
     if (generateBtn) {
       generateBtn.innerHTML = '<i class="fas fa-robot"></i> Generate Questions';
@@ -455,7 +409,7 @@ function showFilePreview(filename, content, isExtracted = false) {
       <div class="file-preview">
         <div class="preview-header">
           <span>Content (${content.length} characters)</span>
-          <button class="copy-btn" onclick="copyToClipboard('${content.replace(/'/g, "\\'")}')">
+          <button class="copy-btn">
             <i class="fas fa-copy"></i> Copy
           </button>
         </div>
@@ -478,6 +432,10 @@ function showFilePreview(filename, content, isExtracted = false) {
     </div>
   `;
   
+  // Add copy functionality
+  const copyBtn = modal.querySelector('.copy-btn');
+  copyBtn.onclick = () => copyToClipboard(content);
+  
   modal.querySelector('.close-modal').onclick = () => modal.remove();
   modal.onclick = (e) => {
     if (e.target === modal) modal.remove();
@@ -487,9 +445,8 @@ function showFilePreview(filename, content, isExtracted = false) {
 }
 
 function formatPreviewContent(content) {
-  // Escape HTML and limit preview length
   const escapedContent = content
-    .substring(0, 5000) // Limit preview length
+    .substring(0, 5000)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -509,7 +466,6 @@ function copyToClipboard(text) {
 
 // Initialize modals
 function initModals() {
-  // Add modal styles if they don't exist
   if (!document.querySelector('#modal-styles')) {
     const style = document.createElement('style');
     style.id = 'modal-styles';
@@ -632,6 +588,7 @@ function initModals() {
   }
 }
 
+// Rest of your existing functions (initFAQ, initMobileMenu, showNotification) remain the same
 // Initialize FAQ toggles
 function initFAQ() {
   const faqItems = document.querySelectorAll('.faq-item');
@@ -778,12 +735,17 @@ if (!document.querySelector('#progress-styles')) {
       color: var(--primary-light) !important;
     }
     
-    .remove-file {
+    .remove-file, .preview-file {
       transition: all 0.3s ease;
     }
     
     .remove-file:hover {
       background: rgba(244, 67, 54, 0.3) !important;
+      transform: translateY(-1px);
+    }
+    
+    .preview-file:hover {
+      background: rgba(106, 75, 255, 0.3) !important;
       transform: translateY(-1px);
     }
   `;
