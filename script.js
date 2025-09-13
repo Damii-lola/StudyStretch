@@ -1,721 +1,314 @@
-// script.js
-const BACKEND_URL = 'examblox-production.up.railway.app'; // REPLACE with your actual Railway URL
+// Initialize PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.worker.min.js';
 
-// Update the uploadAndConvertFile function:
-async function uploadAndConvertFile(file) {
-  const formData = new FormData();
-  formData.append('file', file);
-  
-  const generateBtn = document.querySelector('.btn-generate');
-  const originalText = generateBtn.innerHTML;
-  
-  generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-  generateBtn.disabled = true;
+// DOM Elements
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+const browseBtn = document.getElementById('browseBtn');
+const fileInfo = document.getElementById('fileInfo');
+const fileName = document.getElementById('fileName');
+const fileType = document.getElementById('fileType');
+const fileSize = document.getElementById('fileSize');
+const removeFileBtn = document.getElementById('removeFileBtn');
+const generateBtn = document.getElementById('generateBtn');
+const extractedTextContainer = document.getElementById('extractedTextContainer');
+const extractedTextPreview = document.getElementById('extractedTextPreview');
+const questionRange = document.getElementById('questionRange');
+const questionCount = document.getElementById('questionCount');
 
-  try {
-    const response = await fetch(`${BACKEND_URL}/convert`, {
-      method: 'POST',
-      body: formData
-    });
-    
-    const data = await response.json();
-    
-    if (data.success) {
-      showNotification('File converted successfully!', 'success');
-      window.extractedText = data.text;
-      
-      // Enable question generation options
-      enableQuestionOptions();
-      
-    } else {
-      showNotification(data.error || 'Failed to convert file', 'error');
-    }
-  } catch (error) {
-    console.error('Upload error:', error);
-    showNotification('Network error. Please try again.', 'error');
-  } finally {
-    generateBtn.innerHTML = originalText;
-    generateBtn.disabled = false;
-  }
-}
+// Event Listeners
+browseBtn.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', handleFileSelect);
+removeFileBtn.addEventListener('click', resetFileInput);
+questionRange.addEventListener('input', updateQuestionCount);
 
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('ExamBlox script loaded successfully!');
-  
-  // Create stars for background
-  createStars();
-  
-  // Initialize file upload functionality
-  initFileUpload();
-  
-  // Initialize FAQ toggles
-  initFAQ();
-  
-  // Initialize mobile menu
-  initMobileMenu();
-  
-  // Initialize modal system
-  initModals();
+// Drag and drop functionality
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+  uploadArea.addEventListener(eventName, preventDefaults, false);
 });
 
-// Create starry background
-function createStars() {
-  const starsContainer = document.querySelector('.stars');
-  if (!starsContainer) return;
+function preventDefaults(e) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+['dragenter', 'dragover'].forEach(eventName => {
+  uploadArea.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  uploadArea.addEventListener(eventName, unhighlight, false);
+});
+
+function highlight() {
+  uploadArea.classList.add('dragover');
+}
+
+function unhighlight() {
+  uploadArea.classList.remove('dragover');
+}
+
+uploadArea.addEventListener('drop', handleDrop, false);
+
+function handleDrop(e) {
+  const dt = e.dataTransfer;
+  const files = dt.files;
   
-  starsContainer.innerHTML = '';
-  const starCount = 150;
-  
-  for (let i = 0; i < starCount; i++) {
-    const star = document.createElement('span');
-    star.style.left = `${Math.random() * 100}%`;
-    star.style.top = `${Math.random() * 100}%`;
-    star.style.animationDelay = `${Math.random() * 5}s`;
-    star.style.animationDuration = `${2 + Math.random() * 3}s`;
-    starsContainer.appendChild(star);
+  if (files.length) {
+    fileInput.files = files;
+    handleFileSelect();
   }
 }
 
-// Initialize file upload functionality
-function initFileUpload() {
-  const uploadArea = document.querySelector('.upload-area');
-  if (!uploadArea) return;
+// File handling functions
+function handleFileSelect() {
+  const file = fileInput.files[0];
+  
+  if (!file) return;
+  
+  // Validate file type
+  const validTypes = [
+    'application/pdf', 
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/msword',
+    'text/plain',
+    'image/jpeg',
+    'image/png',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+  ];
+  
+  if (!validTypes.includes(file.type)) {
+    showNotification('Please select a valid file type (PDF, DOCX, TXT, JPG, PNG, PPT)', 'error');
+    resetFileInput();
+    return;
+  }
+  
+  // Validate file size (max 10MB)
+  if (file.size > 10 * 1024 * 1024) {
+    showNotification('File size must be less than 10MB', 'error');
+    resetFileInput();
+    return;
+  }
+  
+  // Display file info
+  fileName.textContent = file.name;
+  fileType.textContent = file.type;
+  fileSize.textContent = formatFileSize(file.size);
+  fileInfo.style.display = 'block';
+  
+  // Enable generate button
+  generateBtn.classList.add('active');
+  generateBtn.disabled = false;
+  
+  // Extract text from file
+  extractTextFromFile(file);
+}
 
-  const fileInput = document.createElement('input');
-  fileInput.type = 'file';
-  fileInput.id = 'file-input';
-  fileInput.accept = '.pdf,.docx,.doc,.txt,.png,.jpg,.jpeg';
-  fileInput.style.display = 'none';
-  document.body.appendChild(fileInput);
+function resetFileInput() {
+  fileInput.value = '';
+  fileInfo.style.display = 'none';
+  extractedTextContainer.style.display = 'none';
+  generateBtn.classList.remove('active');
+  generateBtn.disabled = true;
+}
+
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
   
-  const browseBtn = document.querySelector('.btn-browse');
-  const generateBtn = document.querySelector('.btn-generate');
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
   
-  let selectedFile = null;
-  let fileContent = '';
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function updateQuestionCount() {
+  questionCount.textContent = questionRange.value;
+}
+
+// Text extraction functions
+async function extractTextFromFile(file) {
+  showNotification('Extracting text from file...', 'info');
   
-  // Drag and drop functionality
-  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    uploadArea.addEventListener(eventName, preventDefaults, false);
-  });
-  
-  function preventDefaults(e) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
-  
-  uploadArea.addEventListener('dragenter', function() {
-    uploadArea.classList.add('dragover');
-    const uploadTitle = uploadArea.querySelector('.upload-title');
-    if (uploadTitle) uploadTitle.textContent = 'Drop file here...';
-  });
-  
-  uploadArea.addEventListener('dragover', function() {
-    uploadArea.classList.add('dragover');
-  });
-  
-  uploadArea.addEventListener('dragleave', function() {
-    uploadArea.classList.remove('dragover');
-    updateUploadText();
-  });
-  
-  uploadArea.addEventListener('drop', function(e) {
-    uploadArea.classList.remove('dragover');
-    if (e.dataTransfer.files.length) {
-      handleFileSelect(e.dataTransfer.files[0]);
-    }
-  });
-  
-  // Click to select file - only trigger on the upload area itself, not buttons
-  uploadArea.addEventListener('click', function(e) {
-    // Only trigger if clicking on the upload area itself, not buttons
-    if (e.target === uploadArea || 
-        e.target.classList.contains('upload-icon') ||
-        e.target.classList.contains('upload-title') ||
-        e.target.classList.contains('upload-subtitle')) {
-      fileInput.click();
-    }
-  });
-  
-  if (browseBtn) {
-    browseBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      fileInput.click();
-    });
-  }
-  
-  fileInput.addEventListener('change', function() {
-    if (fileInput.files.length) {
-      handleFileSelect(fileInput.files[0]);
-    }
-  });
-  
-  // Generate questions button
-  if (generateBtn) {
-    generateBtn.addEventListener('click', function() {
-      if (!selectedFile) {
-        showNotification('Please select a file first', 'error');
-        return;
-      }
-      uploadAndConvertFile(selectedFile);
-    });
-  }
-  
-  async function handleFileSelect(file) {
-    // Validate file type
-    const validTypes = [
-      'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/msword', 'text/plain', 'image/png', 'image/jpeg', 'image/jpg'
-    ];
+  try {
+    let text = '';
     
-    if (!validTypes.includes(file.type)) {
-      showNotification('Invalid file type. Please upload PDF, DOCX, DOC, TXT, PNG, or JPG files.', 'error');
-      return;
-    }
-    
-    if (file.size > 10 * 1024 * 1024) {
-      showNotification('File too large. Maximum size is 10MB.', 'error');
-      return;
-    }
-    
-    selectedFile = file;
-    
-    // Read file content for preview - handle binary files differently
-    try {
-      if (file.type === 'text/plain') {
-        // For text files, read the actual content
-        fileContent = await readTextFile(file);
-        console.log('Text file content:', fileContent.substring(0, 200));
-      } else {
-        // For binary files (PDF, DOCX, DOC, images), show appropriate message
-        fileContent = getFilePreviewMessage(file);
-        console.log('Binary file preview message');
-      }
-    } catch (error) {
-      console.error('Error reading file:', error);
-      showNotification('Error reading file content', 'error');
-      return;
-    }
-    
-    // Update UI
-    updateFileUI(file);
-    
-    showNotification(`"${file.name}" selected! Click "Preview Content" to verify.`, 'success');
-  }
-  
-  async function readTextFile(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = e => resolve(e.target.result);
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsText(file);
-    });
-  }
-  
-  function getFilePreviewMessage(file) {
-    const fileType = getFileType(file.type);
-    
-    switch(fileType) {
-      case 'PDF':
-        return `PDF File: ${file.name}\n\nPDF files contain binary data that cannot be displayed directly in the browser. The actual text extraction will be performed on the server using specialized libraries.\n\nFile will be processed to extract: text content, headings, paragraphs, and other readable content.`;
-      
-      case 'DOCX':
-        return `Word Document (DOCX): ${file.name}\n\nDOCX files are compressed archives containing XML data. The actual text extraction will be performed on the server using specialized libraries.\n\nFile will be processed to extract: text content, headings, paragraphs, lists, and other document elements.`;
-      
-      case 'DOC':
-        return `Word Document (DOC): ${file.name}\n\nDOC files use a binary format that cannot be displayed directly in the browser. The actual text extraction will be performed on the server using specialized libraries.\n\nFile will be processed to extract: text content and document structure.`;
-      
-      case 'PNG':
-      case 'JPG':
-        return `Image File: ${file.name}\n\nImage files contain pixel data. Text extraction from images requires Optical Character Recognition (OCR) which will be performed on the server.\n\nFile will be processed using OCR to extract any readable text from the image.`;
-      
+    switch (file.type) {
+      case 'application/pdf':
+        text = await extractTextFromPDF(file);
+        break;
+      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+      case 'application/msword':
+        text = await extractTextFromDocx(file);
+        break;
+      case 'text/plain':
+        text = await extractTextFromTxt(file);
+        break;
+      case 'image/jpeg':
+      case 'image/png':
+        text = await extractTextFromImage(file);
+        break;
+      case 'application/vnd.ms-powerpoint':
+      case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+        text = await extractTextFromPPT(file);
+        break;
       default:
-        return `File: ${file.name}\n\nThis file type requires server-side processing for text extraction.`;
-    }
-  }
-  
-  function updateFileUI(file) {
-    const uploadIcon = uploadArea.querySelector('.upload-icon i');
-    const uploadTitle = uploadArea.querySelector('.upload-title');
-    const uploadSubtitle = uploadArea.querySelector('.upload-subtitle');
-    const fileSize = formatFileSize(file.size);
-    
-    if (uploadIcon) {
-      uploadIcon.className = 'fas fa-file-check';
-      uploadIcon.style.color = '#4CAF50';
+        throw new Error('Unsupported file type');
     }
     
-    if (uploadTitle) {
-      uploadTitle.textContent = file.name;
-      uploadTitle.style.fontWeight = '600';
-      uploadTitle.style.color = '#4CAF50';
-    }
-    
-    if (uploadSubtitle) {
-      uploadSubtitle.textContent = `Size: ${fileSize} • Type: ${getFileType(file.type)} • Click to preview`;
-      uploadSubtitle.style.cursor = 'pointer';
-      uploadSubtitle.style.color = '#6a4bff';
-      uploadSubtitle.onclick = (e) => {
-        e.stopPropagation(); // Prevent triggering upload area click
-        showFilePreview(file.name, fileContent);
-      };
-    }
-    
-    // Add action buttons
-    addActionButtons();
-    
-    // Enable generate button
-    const generateBtn = document.querySelector('.btn-generate');
-    if (generateBtn) {
-      generateBtn.classList.add('active');
-      generateBtn.disabled = false;
-    }
-  }
-  
-  function addActionButtons() {
-    // Remove existing buttons
-    removeActionButtons();
-    
-    // Create button container
-    const buttonContainer = document.createElement('div');
-    buttonContainer.className = 'action-buttons';
-    buttonContainer.style.marginTop = '15px';
-    buttonContainer.style.display = 'flex';
-    buttonContainer.style.gap = '10px';
-    buttonContainer.style.justifyContent = 'center';
-    
-    // Preview button
-    const previewBtn = document.createElement('button');
-    previewBtn.className = 'preview-file';
-    previewBtn.innerHTML = '<i class="fas fa-eye"></i> Preview Content';
-    previewBtn.style.padding = '8px 15px';
-    previewBtn.style.background = 'rgba(106, 75, 255, 0.2)';
-    previewBtn.style.color = '#6a4bff';
-    previewBtn.style.border = '1px solid #6a4bff';
-    previewBtn.style.borderRadius = '4px';
-    previewBtn.style.cursor = 'pointer';
-    previewBtn.style.fontSize = '12px';
-    previewBtn.onclick = (e) => {
-      e.stopPropagation(); // Prevent triggering upload area click
-      showFilePreview(selectedFile.name, fileContent);
-    };
-    
-    // Remove button
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'remove-file';
-    removeBtn.innerHTML = '<i class="fas fa-times"></i> Remove';
-    removeBtn.style.padding = '8px 15px';
-    removeBtn.style.background = 'rgba(244, 67, 54, 0.2)';
-    removeBtn.style.color = '#f44336';
-    removeBtn.style.border = '1px solid #f44336';
-    removeBtn.style.borderRadius = '4px';
-    removeBtn.style.cursor = 'pointer';
-    removeBtn.style.fontSize = '12px';
-    removeBtn.onclick = (e) => {
-      e.stopPropagation(); // Prevent triggering upload area click
-      resetFileSelection();
-    };
-    
-    buttonContainer.appendChild(previewBtn);
-    buttonContainer.appendChild(removeBtn);
-    uploadArea.appendChild(buttonContainer);
-  }
-  
-  function removeActionButtons() {
-    const existingButtons = uploadArea.querySelector('.action-buttons');
-    if (existingButtons) {
-      existingButtons.remove();
-    }
-  }
-  
-  function resetFileSelection() {
-    selectedFile = null;
-    fileContent = '';
-    const fileInput = document.getElementById('file-input');
-    if (fileInput) fileInput.value = '';
-    
-    const uploadIcon = uploadArea.querySelector('.upload-icon i');
-    const uploadTitle = uploadArea.querySelector('.upload-title');
-    const uploadSubtitle = uploadArea.querySelector('.upload-subtitle');
-    
-    if (uploadIcon) {
-      uploadIcon.className = 'fas fa-file-upload';
-      uploadIcon.style.color = '';
-    }
-    
-    if (uploadTitle) {
-      uploadTitle.textContent = 'Drag & drop your file here';
-      uploadTitle.style.fontWeight = '';
-      uploadTitle.style.color = '';
-    }
-    
-    if (uploadSubtitle) {
-      uploadSubtitle.textContent = 'or';
-      uploadSubtitle.style.cursor = '';
-      uploadSubtitle.style.color = '';
-      uploadSubtitle.onclick = null;
-    }
-    
-    removeActionButtons();
-    
-    const generateBtn = document.querySelector('.btn-generate');
-    if (generateBtn) {
-      generateBtn.classList.remove('active');
-      generateBtn.disabled = true;
-    }
-    
-    showNotification('File removed', 'info');
-  }
-  
-  function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
-  
-  function getFileType(mimeType) {
-    const types = {
-      'application/pdf': 'PDF',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
-      'application/msword': 'DOC',
-      'text/plain': 'TXT',
-      'image/png': 'PNG',
-      'image/jpeg': 'JPG',
-      'image/jpg': 'JPG'
-    };
-    return types[mimeType] || mimeType;
-  }
-  
-  async function uploadAndConvertFile(file) {
-    const generateBtn = document.querySelector('.btn-generate');
-    const uploadTitle = uploadArea.querySelector('.upload-title');
-    const originalText = generateBtn ? generateBtn.innerHTML : '';
-    const originalTitle = uploadTitle ? uploadTitle.textContent : '';
-    
-    if (generateBtn) {
-      generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-      generateBtn.disabled = true;
-    }
-    
-    if (uploadTitle) {
-      uploadTitle.innerHTML = 'Processing file... <div class="progress-bar"><div class="progress"></div></div>';
-    }
-    
-    try {
-      // Simulate processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+    // Display extracted text preview
+    if (text && text.length > 0) {
+      const previewText = text.length > 500 ? text.substring(0, 500) + '...' : text;
+      extractedTextPreview.textContent = previewText;
+      extractedTextContainer.style.display = 'block';
       
-      // For simulation, create appropriate content based on file type
-      const simulatedText = simulateTextExtraction(file.name, file.type);
-      showNotification(`File processed! Ready to generate questions.`, 'success');
-      
-      window.extractedText = simulatedText;
-      
-      if (uploadTitle) {
-        uploadTitle.innerHTML = `<i class="fas fa-check-circle" style="color: #4CAF50;"></i> Ready for Questions!`;
+      showNotification('Text extracted successfully!', 'success');
+    } else {
+      showNotification('No text could be extracted from this file', 'warning');
+    }
+    
+    return text;
+  } catch (error) {
+    console.error('Text extraction error:', error);
+    showNotification('Error extracting text: ' + error.message, 'error');
+    return '';
+  }
+}
+
+async function extractTextFromPDF(file) {
+  return new Promise((resolve, reject) => {
+    const fileReader = new FileReader();
+    
+    fileReader.onload = async function() {
+      try {
+        const typedArray = new Uint8Array(this.result);
+        const pdf = await pdfjsLib.getDocument(typedArray).promise;
+        
+        let text = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          text += textContent.items.map(item => item.str).join(' ') + '\n';
+        }
+        
+        resolve(text);
+      } catch (error) {
+        reject(error);
       }
-      
-      showFilePreview('Processing Complete', simulatedText, true);
-      enableQuestionOptions();
-      
-    } catch (error) {
-      console.error('Upload error:', error);
-      showNotification('Error processing file. Please try again.', 'error');
-      if (uploadTitle) uploadTitle.textContent = originalTitle;
-    } finally {
-      if (generateBtn) {
-        generateBtn.innerHTML = originalText;
-        generateBtn.disabled = false;
-      }
-    }
-  }
-  
-  function simulateTextExtraction(filename, fileType) {
-    const type = getFileType(fileType);
+    };
     
-    switch(type) {
-      case 'PDF':
-        return `PDF FILE PROCESSED: ${filename}\n\nThe PDF has been successfully processed and text content has been extracted.\n\nIn a real implementation, the backend would use pdf-parse library to extract:\n- Text content\n- Headings and paragraphs\n- Document structure\n- Readable content from the PDF`;
-      
-      case 'DOCX':
-        return `DOCX FILE PROCESSED: ${filename}\n\nThe Word document has been successfully processed and text content has been extracted.\n\nIn a real implementation, the backend would use mammoth library to extract:\n- Text content\n- Document headings\n- Paragraphs and lists\n- Document structure`;
-      
-      case 'DOC':
-        return `DOC FILE PROCESSED: ${filename}\n\nThe Word document has been successfully processed and text content has been extracted.\n\nIn a real implementation, the backend would use textract library to extract readable content from the binary DOC format.`;
-      
-      case 'PNG':
-      case 'JPG':
-        return `IMAGE PROCESSED: ${filename}\n\nThe image has been successfully processed using OCR technology.\n\nIn a real implementation, the backend would use Tesseract.js to perform:\n- Optical Character Recognition\n- Text extraction from images\n- Text cleaning and formatting`;
-      
-      case 'TXT':
-        return `TEXT FILE CONTENT:\n\n${fileContent}\n\nThis is the actual content extracted from your text file.`;
-      
-      default:
-        return `FILE PROCESSED: ${filename}\n\nThe file has been successfully processed and is ready for question generation.`;
-    }
-  }
-  
-  function enableQuestionOptions() {
-    document.querySelectorAll('select, input').forEach(el => {
-      el.disabled = false;
-    });
-    
-    const generateBtn = document.querySelector('.btn-generate');
-    if (generateBtn) {
-      generateBtn.innerHTML = '<i class="fas fa-robot"></i> Generate Questions';
-    }
-    
-    showNotification('File processed! Customize your questions and click Generate.', 'info');
-  }
-}
-
-// File preview modal
-function showFilePreview(filename, content, isExtracted = false) {
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.innerHTML = `
-    <div class="modal-content">
-      <span class="close-modal">&times;</span>
-      <h2>${isExtracted ? 'Processing Results' : 'File Content Preview'}</h2>
-      <p class="modal-subtitle">File: ${filename}</p>
-      <div class="file-preview">
-        <div class="preview-header">
-          <span>${isExtracted ? 'Processing Information' : 'File Information'}</span>
-          <button class="copy-btn">
-            <i class="fas fa-copy"></i> Copy
-          </button>
-        </div>
-        <div class="preview-content">${formatPreviewContent(content)}</div>
-      </div>
-      <div class="preview-stats">
-        <div class="stat">
-          <i class="fas fa-font"></i>
-          <span>Characters: ${content.length}</span>
-        </div>
-        <div class="stat">
-          <i class="fas fa-file-word"></i>
-          <span>Words: ${content.split(/\s+/).filter(word => word.length > 0).length}</span>
-        </div>
-        <div class="stat">
-          <i class="fas fa-paragraph"></i>
-          <span>Lines: ${content.split('\n').length}</span>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  // Add copy functionality
-  const copyBtn = modal.querySelector('.copy-btn');
-  copyBtn.onclick = () => copyToClipboard(content);
-  
-  modal.querySelector('.close-modal').onclick = () => modal.remove();
-  modal.onclick = (e) => {
-    if (e.target === modal) modal.remove();
-  };
-  
-  document.body.appendChild(modal);
-}
-
-function formatPreviewContent(content) {
-  const escapedContent = content
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-  
-  return escapedContent;
-}
-
-function copyToClipboard(text) {
-  navigator.clipboard.writeText(text).then(() => {
-    showNotification('Content copied to clipboard!', 'success');
-  }).catch(err => {
-    showNotification('Failed to copy content', 'error');
+    fileReader.onerror = reject;
+    fileReader.readAsArrayBuffer(file);
   });
 }
 
-// Initialize modals
-function initModals() {
-  if (!document.querySelector('#modal-styles')) {
-    const style = document.createElement('style');
-    style.id = 'modal-styles';
-    style.textContent = `
-      .modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10000;
-        padding: 20px;
-      }
-      
-      .modal-content {
-        background: #1e1c2c;
-        padding: 30px;
-        border-radius: 15px;
-        width: 90%;
-        max-width: 800px;
-        max-height: 80vh;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        border: 1px solid rgba(106, 75, 255, 0.3);
-      }
-      
-      .close-modal {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        font-size: 24px;
-        cursor: pointer;
-        color: #eee;
-      }
-      
-      .modal h2 {
-        margin-top: 0;
-        text-align: center;
-        color: #eee;
-      }
-      
-      .modal-subtitle {
-        text-align: center;
-        color: #9b6aff;
-        margin-top: -10px;
-        margin-bottom: 20px;
-        font-size: 14px;
-      }
-      
-      .file-preview {
-        background: rgba(0, 0, 0, 0.3);
-        border-radius: 8px;
-        padding: 0;
-        margin-bottom: 20px;
-        flex: 1;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-      }
-      
-      .preview-header {
-        padding: 15px;
-        background: rgba(106, 75, 255, 0.1);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      
-      .copy-btn {
-        background: rgba(106, 75, 255, 0.2);
-        color: #9b6aff;
-        border: 1px solid #6a4bff;
-        padding: 5px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 12px;
-        transition: all 0.3s ease;
-      }
-      
-      .copy-btn:hover {
-        background: rgba(106, 75, 255, 0.3);
-        transform: translateY(-1px);
-      }
-      
-      .preview-content {
-        padding: 20px;
-        overflow-y: auto;
-        flex: 1;
-        white-space: pre-wrap;
-        font-family: 'Poppins', sans-serif;
-        font-size: 14px;
-        line-height: 1.6;
-        color: #eee;
-      }
-      
-      .preview-stats {
-        display: flex;
-        justify-content: space-around;
-        padding: 15px;
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 8px;
-        margin-top: 10px;
-      }
-      
-      .stat {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        color: #9b6aff;
-        font-size: 12px;
-      }
-      
-      .stat i {
-        font-size: 18px;
-        margin-bottom: 5px;
-      }
-      
-      .stat span {
-        font-weight: 500;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-}
-
-// Rest of your existing functions (initFAQ, initMobileMenu, showNotification) remain the same
-// Initialize FAQ toggles
-function initFAQ() {
-  const faqItems = document.querySelectorAll('.faq-item');
-  
-  faqItems.forEach(item => {
-    const question = item.querySelector('.faq-question');
+async function extractTextFromDocx(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
     
-    if (question) {
-      question.addEventListener('click', () => {
-        item.classList.toggle('active');
-      });
-    }
+    reader.onload = function(event) {
+      const arrayBuffer = event.target.result;
+      
+      mammoth.extractRawText({ arrayBuffer })
+        .then(result => resolve(result.value))
+        .catch(err => reject(err));
+    };
+    
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
   });
 }
 
-// Initialize mobile menu
-function initMobileMenu() {
-  const hamburger = document.querySelector('.hamburger');
-  const navLinks = document.querySelector('.nav-links');
-  
-  if (hamburger && navLinks) {
-    hamburger.addEventListener('click', () => {
-      hamburger.classList.toggle('active');
-      navLinks.classList.toggle('active');
-    });
+async function extractTextFromTxt(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
     
-    // Close menu when clicking on links
-    document.querySelectorAll('.nav-links a').forEach(link => {
-      link.addEventListener('click', () => {
-        hamburger.classList.remove('active');
-        navLinks.classList.remove('active');
-      });
-    });
+    reader.onload = function(event) {
+      resolve(event.target.result);
+    };
+    
+    reader.onerror = reject;
+    reader.readAsText(file);
+  });
+}
+
+async function extractTextFromImage(file) {
+  try {
+    const { data: { text } } = await Tesseract.recognize(
+      file,
+      'eng',
+      { logger: m => console.log(m) }
+    );
+    
+    return text;
+  } catch (error) {
+    throw new Error('OCR failed: ' + error.message);
   }
 }
+
+async function extractTextFromPPT(file) {
+  // For PPT files, we'll convert to PDF first (simplified approach)
+  // Note: This is a simplified approach - in a real application, you might want to use a more robust solution
+  return new Promise((resolve) => {
+    // For demonstration purposes, we'll return a placeholder message
+    resolve("PPT file uploaded. For full functionality, please convert to PDF or other supported formats.");
+  });
+}
+
+// Generate questions button handler
+generateBtn.addEventListener('click', async function() {
+  const file = fileInput.files[0];
+  
+  if (!file) {
+    showNotification('Please select a file first', 'error');
+    return;
+  }
+  
+  // Show loading state
+  const originalText = this.innerHTML;
+  this.innerHTML = '<div class="spinner"></div> Processing...';
+  this.disabled = true;
+  
+  try {
+    // Extract text from file
+    const text = await extractTextFromFile(file);
+    
+    if (!text || text.trim().length === 0) {
+      throw new Error('No text could be extracted from the file');
+    }
+    
+    // Get user options
+    const questionType = document.getElementById('questionType').value;
+    const numQuestions = document.getElementById('questionRange').value;
+    const difficulty = document.getElementById('difficultyLevel').value;
+    
+    // In a real application, you would send this data to your backend
+    // For now, we'll just show a success message
+    showNotification(`Ready to generate ${numQuestions} ${questionType} questions (${difficulty} difficulty)!`, 'success');
+    
+    // Simulate API call delay
+    setTimeout(() => {
+      this.innerHTML = originalText;
+      this.disabled = false;
+      
+      // Show a mock result (in a real app, this would be the actual generated questions)
+      alert(`Success! ${numQuestions} questions generated from your ${file.name} file. In a real application, you would now see the questions.`);
+    }, 2000);
+    
+  } catch (error) {
+    console.error('Error generating questions:', error);
+    showNotification('Error: ' + error.message, 'error');
+    
+    // Reset button state
+    this.innerHTML = originalText;
+    this.disabled = false;
+  }
+});
 
 // Notification system
 function showNotification(message, type = 'info') {
-  // Remove any existing notifications
-  const existingNotifications = document.querySelectorAll('.notification');
-  existingNotifications.forEach(notification => {
-    notification.remove();
-  });
-  
-  // Create new notification
+  // Create notification element
   const notification = document.createElement('div');
   notification.className = `notification notification-${type}`;
   notification.innerHTML = `
@@ -723,46 +316,7 @@ function showNotification(message, type = 'info') {
     <button onclick="this.parentElement.remove()">&times;</button>
   `;
   
-  // Add styles if they don't exist
-  if (!document.querySelector('#notification-styles')) {
-    const style = document.createElement('style');
-    style.id = 'notification-styles';
-    style.textContent = `
-      .notification {
-        position: fixed;
-        top: 100px;
-        right: 20px;
-        padding: 15px 20px;
-        border-radius: 8px;
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        min-width: 300px;
-        z-index: 10000;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        transform: translateX(100%);
-        animation: slideIn 0.3s forwards;
-        backdrop-filter: blur(10px);
-      }
-      .notification-success { background: rgba(76, 175, 80, 0.9); }
-      .notification-error { background: rgba(244, 67, 54, 0.9); }
-      .notification-info { background: rgba(106, 75, 255, 0.9); }
-      .notification button {
-        background: none;
-        border: none;
-        color: white;
-        font-size: 20px;
-        cursor: pointer;
-        margin-left: 15px;
-      }
-      @keyframes slideIn {
-        to { transform: translateX(0); }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-  
+  // Add to document
   document.body.appendChild(notification);
   
   // Auto remove after 5 seconds
@@ -773,292 +327,11 @@ function showNotification(message, type = 'info') {
   }, 5000);
 }
 
-// Add progress bar styles
-if (!document.querySelector('#progress-styles')) {
-  const progressStyle = document.createElement('style');
-  progressStyle.id = 'progress-styles';
-  progressStyle.textContent = `
-    .progress-bar {
-      width: 100%;
-      height: 5px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 3px;
-      margin-top: 10px;
-      overflow: hidden;
-    }
-    
-    .progress {
-      width: 0%;
-      height: 100%;
-      background: linear-gradient(90deg, var(--primary-light), var(--primary));
-      border-radius: 3px;
-      animation: progressAnimation 2s infinite;
-    }
-    
-    @keyframes progressAnimation {
-      0% { width: 0%; }
-      50% { width: 70%; }
-      100% { width: 100%; }
-    }
-    
-    /* Enhanced upload area styles */
-    .upload-area.dragover {
-      background: rgba(106, 75, 255, 0.1) !important;
-      border: 2px dashed var(--primary-light) !important;
-      transform: scale(1.02) !important;
-    }
-    
-    .upload-area.dragover .upload-icon i {
-      color: var(--primary-light) !important;
-      transform: scale(1.1);
-    }
-    
-    .upload-area.dragover .upload-title {
-      color: var(--primary-light) !important;
-    }
-    
-    .remove-file, .preview-file {
-      transition: all 0.3s ease;
-    }
-    
-    .remove-file:hover {
-      background: rgba(244, 67, 54, 0.3) !important;
-      transform: translateY(-1px);
-    }
-    
-    .preview-file:hover {
-      background: rgba(106, 75, 255, 0.3) !important;
-      transform: translateY(-1px);
-    }
-  `;
-  document.head.appendChild(progressStyle);
+// Initialize the application
+function initApp() {
+  // Set up any initial state here
+  console.log('ExamBlox application initialized');
 }
 
-// Add to your existing script.js
-
-// AI Question Generation
-async function generateQuestions() {
-  if (!window.extractedText) {
-    showNotification('Please process a file first', 'error');
-    return;
-  }
-
-  const questionType = document.querySelector('select:nth-of-type(1)').value;
-  const numberOfQuestions = document.querySelector('input[type="range"]').value;
-  const difficultyLevel = document.querySelector('select:nth-of-type(2)').value;
-
-  const generateBtn = document.querySelector('.btn-generate');
-  const originalText = generateBtn.innerHTML;
-  
-  generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating Questions...';
-  generateBtn.disabled = true;
-
-  try {
-    const response = await fetch(`${BACKEND_URL}/generate-questions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: window.extractedText,
-        questionType: questionType,
-        numberOfQuestions: parseInt(numberOfQuestions),
-        difficultyLevel: difficultyLevel
-      })
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      showNotification(`Successfully generated ${data.totalQuestions} questions!`, 'success');
-      displayQuestions(data.questions);
-    } else {
-      showNotification(data.error || 'Failed to generate questions', 'error');
-    }
-
-  } catch (error) {
-    console.error('Question generation error:', error);
-    showNotification('Error generating questions. Please try again.', 'error');
-  } finally {
-    generateBtn.innerHTML = originalText;
-    generateBtn.disabled = false;
-  }
-}
-
-function displayQuestions(questions) {
-  // Create questions container
-  const questionsContainer = document.createElement('div');
-  questionsContainer.className = 'questions-container';
-  questionsContainer.innerHTML = `
-    <div class="questions-header">
-      <h3>Generated Questions</h3>
-      <button class="close-questions">&times;</button>
-    </div>
-    <div class="questions-list">
-      ${questions.map((q, index) => renderQuestion(q, index)).join('')}
-    </div>
-  `;
-
-  // Add styles if not already added
-  if (!document.querySelector('#questions-styles')) {
-    const style = document.createElement('style');
-    style.id = 'questions-styles';
-    style.textContent = `
-      .questions-container {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: #1e1c2c;
-        border: 2px solid #6a4bff;
-        border-radius: 15px;
-        padding: 20px;
-        max-width: 90%;
-        max-height: 80vh;
-        overflow-y: auto;
-        z-index: 10001;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      }
-      
-      .questions-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #6a4bff;
-      }
-      
-      .questions-header h3 {
-        color: #9b6aff;
-        margin: 0;
-      }
-      
-      .close-questions {
-        background: none;
-        border: none;
-        color: #eee;
-        font-size: 24px;
-        cursor: pointer;
-        padding: 0;
-        width: 30px;
-        height: 30px;
-      }
-      
-      .question-item {
-        background: rgba(106, 75, 255, 0.1);
-        border-radius: 10px;
-        padding: 15px;
-        margin-bottom: 15px;
-        border-left: 4px solid #6a4bff;
-      }
-      
-      .question-text {
-        font-weight: 600;
-        color: #eee;
-        margin-bottom: 10px;
-      }
-      
-      .question-type {
-        display: inline-block;
-        background: #6a4bff;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        margin-bottom: 10px;
-      }
-      
-      .options-list {
-        list-style: none;
-        padding: 0;
-        margin: 10px 0;
-      }
-      
-      .options-list li {
-        padding: 8px;
-        margin: 5px 0;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 5px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      
-      .correct-answer {
-        background: rgba(76, 175, 80, 0.2) !important;
-        border-color: #4CAF50 !important;
-        color: #4CAF50;
-        font-weight: 600;
-      }
-      
-      .answer-section {
-        background: rgba(76, 175, 80, 0.1);
-        padding: 10px;
-        border-radius: 5px;
-        margin-top: 10px;
-        border-left: 3px solid #4CAF50;
-      }
-      
-      .explanation {
-        font-style: italic;
-        color: #ccc;
-        margin-top: 5px;
-        font-size: 14px;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  // Add close functionality
-  questionsContainer.querySelector('.close-questions').onclick = () => {
-    questionsContainer.remove();
-  };
-
-  document.body.appendChild(questionsContainer);
-}
-
-function renderQuestion(question, index) {
-  let optionsHtml = '';
-  
-  if (question.options && question.options.length > 0) {
-    optionsHtml = `
-      <ul class="options-list">
-        ${question.options.map(option => `
-          <li class="${option === question.answer ? 'correct-answer' : ''}">
-            ${option}
-          </li>
-        `).join('')}
-      </ul>
-    `;
-  }
-
-  return `
-    <div class="question-item">
-      <span class="question-type">${question.type}</span>
-      <div class="question-text">${index + 1}. ${question.question}</div>
-      ${optionsHtml}
-      <div class="answer-section">
-        <strong>Answer:</strong> ${question.answer}
-        ${question.explanation ? `<div class="explanation">${question.explanation}</div>` : ''}
-      </div>
-    </div>
-  `;
-}
-
-// Update the generate button click handler to use the new function
-// Replace this in your initFileUpload function:
-if (generateBtn) {
-  generateBtn.addEventListener('click', function() {
-    if (!selectedFile) {
-      showNotification('Please select a file first', 'error');
-      return;
-    }
-    
-    if (window.extractedText) {
-      // If we already have extracted text, generate questions directly
-      generateQuestions();
-    } else {
-      // Otherwise, process the file first
-      uploadAndConvertFile(selectedFile);
-    }
-  });
-}
+// Start the application when the DOM is loaded
+document.addEventListener('DOMContentLoaded', initApp);
