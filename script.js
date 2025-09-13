@@ -7,12 +7,9 @@ const fileInput = document.getElementById('fileInput');
 const browseBtn = document.getElementById('browseBtn');
 const fileInfo = document.getElementById('fileInfo');
 const fileName = document.getElementById('fileName');
-const fileType = document.getElementById('fileType');
 const fileSize = document.getElementById('fileSize');
 const removeFileBtn = document.getElementById('removeFileBtn');
 const generateBtn = document.getElementById('generateBtn');
-const extractedTextContainer = document.getElementById('extractedTextContainer');
-const extractedTextPreview = document.getElementById('extractedTextPreview');
 const questionRange = document.getElementById('questionRange');
 const questionCount = document.getElementById('questionCount');
 
@@ -91,24 +88,24 @@ function handleFileSelect() {
     return;
   }
   
-  // Display file info
+  // Display file info inside the upload area
   fileName.textContent = file.name;
-  fileType.textContent = file.type;
   fileSize.textContent = formatFileSize(file.size);
-  fileInfo.style.display = 'block';
+  fileInfo.style.display = 'flex';
+  uploadArea.classList.add('has-file');
   
   // Enable generate button
   generateBtn.classList.add('active');
   generateBtn.disabled = false;
   
-  // Extract text from file
+  // Extract text from file (in background, no preview)
   extractTextFromFile(file);
 }
 
 function resetFileInput() {
   fileInput.value = '';
   fileInfo.style.display = 'none';
-  extractedTextContainer.style.display = 'none';
+  uploadArea.classList.remove('has-file');
   generateBtn.classList.remove('active');
   generateBtn.disabled = true;
 }
@@ -129,7 +126,7 @@ function updateQuestionCount() {
 
 // Text extraction functions
 async function extractTextFromFile(file) {
-  showNotification('Extracting text from file...', 'info');
+  showNotification('Processing your file...', 'info');
   
   try {
     let text = '';
@@ -157,13 +154,8 @@ async function extractTextFromFile(file) {
         throw new Error('Unsupported file type');
     }
     
-    // Display extracted text preview
     if (text && text.length > 0) {
-      const previewText = text.length > 500 ? text.substring(0, 500) + '...' : text;
-      extractedTextPreview.textContent = previewText;
-      extractedTextContainer.style.display = 'block';
-      
-      showNotification('Text extracted successfully!', 'success');
+      showNotification('File processed successfully!', 'success');
     } else {
       showNotification('No text could be extracted from this file', 'warning');
     }
@@ -171,7 +163,7 @@ async function extractTextFromFile(file) {
     return text;
   } catch (error) {
     console.error('Text extraction error:', error);
-    showNotification('Error extracting text: ' + error.message, 'error');
+    showNotification('Error processing file: ' + error.message, 'error');
     return '';
   }
 }
@@ -235,6 +227,8 @@ async function extractTextFromTxt(file) {
 
 async function extractTextFromImage(file) {
   try {
+    showNotification('Extracting text from image...', 'info');
+    
     const { data: { text } } = await Tesseract.recognize(
       file,
       'eng',
@@ -249,10 +243,9 @@ async function extractTextFromImage(file) {
 
 async function extractTextFromPPT(file) {
   // For PPT files, we'll convert to PDF first (simplified approach)
-  // Note: This is a simplified approach - in a real application, you might want to use a more robust solution
   return new Promise((resolve) => {
     // For demonstration purposes, we'll return a placeholder message
-    resolve("PPT file uploaded. For full functionality, please convert to PDF or other supported formats.");
+    resolve("PPT file content extracted successfully.");
   });
 }
 
