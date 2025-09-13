@@ -19,7 +19,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set up event listeners
     if (browseBtn) {
-        browseBtn.addEventListener('click', () => fileInput.click());
+        browseBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent triggering the upload area click
+            fileInput.click();
+        });
     }
     
     if (fileInput) {
@@ -27,7 +30,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (removeFileBtn) {
-        removeFileBtn.addEventListener('click', resetFileInput);
+        removeFileBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent triggering the upload area click
+            resetFileInput();
+        });
     }
     
     if (questionRange && questionCount) {
@@ -38,6 +44,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (generateBtn) {
         generateBtn.addEventListener('click', handleGenerateQuestions);
+    }
+    
+    // Make the entire upload area clickable
+    if (uploadArea) {
+        uploadArea.addEventListener('click', (e) => {
+            // Don't trigger if clicking on remove button or its children
+            if (!e.target.closest('.btn-remove')) {
+                fileInput.click();
+            }
+        });
     }
     
     // Set up drag and drop functionality
@@ -225,7 +241,7 @@ async function extractTextFromPDF(file) {
 }
 
 async function extractTextFromDocx(file) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) {
         const reader = new FileReader();
         
         reader.onload = function(event) {
