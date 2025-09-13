@@ -19,10 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set up event listeners
     if (browseBtn) {
-        browseBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent triggering the upload area click
-            fileInput.click();
-        });
+        browseBtn.addEventListener('click', () => fileInput.click());
     }
     
     if (fileInput) {
@@ -30,10 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (removeFileBtn) {
-        removeFileBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent triggering the upload area click
-            resetFileInput();
-        });
+        removeFileBtn.addEventListener('click', resetFileInput);
     }
     
     if (questionRange && questionCount) {
@@ -44,19 +38,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (generateBtn) {
         generateBtn.addEventListener('click', handleGenerateQuestions);
-    }
-    
-    // Make the entire upload area clickable - FIXED APPROACH
-    if (uploadArea) {
-        // Add the clickable overlay class
-        uploadArea.classList.add('clickable-overlay');
-        
-        uploadArea.addEventListener('click', (e) => {
-            // Only trigger file selection if clicking on the overlay (not buttons)
-            if (e.target === uploadArea || e.target.classList.contains('upload-area-content')) {
-                fileInput.click();
-            }
-        });
     }
     
     // Set up drag and drop functionality
