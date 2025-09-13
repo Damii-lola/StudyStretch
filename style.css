@@ -234,6 +234,7 @@ body {
 }
 
 /* Upload Box */
+/* Upload Box */
 .upload-box {
   background: var(--card-bg);
   backdrop-filter: blur(10px);
@@ -258,7 +259,9 @@ body {
   font-size: 0.9rem;
 }
 
+/* Upload Area - Fixed to not shrink */
 .upload-area {
+  position: relative;
   border: 2px dashed var(--primary);
   border-radius: 10px;
   padding: 40px 20px;
@@ -266,6 +269,12 @@ body {
   transition: all 0.3s;
   margin-bottom: 20px;
   background: rgba(21, 19, 32, 0.5);
+  min-height: 200px; /* Fixed height to prevent shrinking */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer; /* Show it's clickable */
 }
 
 .upload-area:hover, .upload-area.dragover {
@@ -300,6 +309,8 @@ body {
   font-weight: 600;
   transition: all 0.3s;
   margin: 10px 0;
+  position: relative;
+  z-index: 2; /* Ensure button is above the clickable area */
 }
 
 .btn-browse:hover {
@@ -307,7 +318,7 @@ body {
   box-shadow: 0 5px 15px rgba(106, 75, 255, 0.4);
 }
 
-/* File info styles */
+/* File info styles - Centered and properly positioned */
 .file-info {
   display: none;
   width: 100%;
@@ -317,9 +328,13 @@ body {
   align-items: center;
   animation: fadeIn 0.3s ease-in;
   border: 1px solid rgba(106, 75, 255, 0.3);
-  margin-top: 15px;
   justify-content: center;
   text-align: center;
+  position: absolute; /* Position absolutely to not affect layout */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
 }
 
 .file-info-content {
@@ -365,6 +380,8 @@ body {
   justify-content: center;
   transition: all 0.3s;
   font-size: 0.9rem;
+  position: relative;
+  z-index: 2; /* Ensure button is above the clickable area */
 }
 
 .btn-remove:hover {
@@ -376,11 +393,7 @@ body {
   margin-right: 5px;
 }
 
-/* Adjust upload area when file is selected */
-.upload-area.has-file {
-  padding: 20px;
-}
-
+/* Hide original content when file is selected */
 .upload-area.has-file .upload-icon,
 .upload-area.has-file .upload-title,
 .upload-area.has-file .upload-subtitle,
@@ -1180,6 +1193,7 @@ footer {
   width: 0%;
   transition: width 0.3s ease;
 }
+
 
 
 
