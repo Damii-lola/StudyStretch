@@ -13,318 +13,342 @@ const generateBtn = document.getElementById('generateBtn');
 const questionRange = document.getElementById('questionRange');
 const questionCount = document.getElementById('questionCount');
 
-// Event Listeners
-browseBtn.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', handleFileSelect);
-removeFileBtn.addEventListener('click', resetFileInput);
-questionRange.addEventListener('input', updateQuestionCount);
+// Initialize the application when the DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('ExamBlox application initialized');
+    
+    // Set up event listeners
+    if (browseBtn) {
+        browseBtn.addEventListener('click', () => fileInput.click());
+    }
+    
+    if (fileInput) {
+        fileInput.addEventListener('change', handleFileSelect);
+    }
+    
+    if (removeFileBtn) {
+        removeFileBtn.addEventListener('click', resetFileInput);
+    }
+    
+    if (questionRange && questionCount) {
+        questionRange.addEventListener('input', updateQuestionCount);
+        // Initialize the question count display
+        updateQuestionCount();
+    }
+    
+    if (generateBtn) {
+        generateBtn.addEventListener('click', handleGenerateQuestions);
+    }
+    
+    // Set up drag and drop functionality
+    setupDragAndDrop();
+});
 
 // Drag and drop functionality
-['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-  uploadArea.addEventListener(eventName, preventDefaults, false);
-});
+function setupDragAndDrop() {
+    if (!uploadArea) return;
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, preventDefaults, false);
+    });
 
-function preventDefaults(e) {
-  e.preventDefault();
-  e.stopPropagation();
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    uploadArea.addEventListener('drop', handleDrop, false);
 }
 
-['dragenter', 'dragover'].forEach(eventName => {
-  uploadArea.addEventListener(eventName, highlight, false);
-});
-
-['dragleave', 'drop'].forEach(eventName => {
-  uploadArea.addEventListener(eventName, unhighlight, false);
-});
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
 
 function highlight() {
-  uploadArea.classList.add('dragover');
+    uploadArea.classList.add('dragover');
 }
 
 function unhighlight() {
-  uploadArea.classList.remove('dragover');
+    uploadArea.classList.remove('dragover');
 }
 
-uploadArea.addEventListener('drop', handleDrop, false);
-
 function handleDrop(e) {
-  const dt = e.dataTransfer;
-  const files = dt.files;
-  
-  if (files.length) {
-    fileInput.files = files;
-    handleFileSelect();
-  }
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    
+    if (files.length) {
+        fileInput.files = files;
+        handleFileSelect();
+    }
 }
 
 // File handling functions
 function handleFileSelect() {
-  const file = fileInput.files[0];
-  
-  if (!file) return;
-  
-  // Validate file type
-  const validTypes = [
-    'application/pdf', 
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/msword',
-    'text/plain',
-    'image/jpeg',
-    'image/png',
-    'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
-  ];
-  
-  if (!validTypes.includes(file.type)) {
-    showNotification('Please select a valid file type (PDF, DOCX, TXT, JPG, PNG, PPT)', 'error');
-    resetFileInput();
-    return;
-  }
-  
-  // Validate file size (max 10MB)
-  if (file.size > 10 * 1024 * 1024) {
-    showNotification('File size must be less than 10MB', 'error');
-    resetFileInput();
-    return;
-  }
-  
-  // Display file info inside the upload area
-  fileName.textContent = file.name;
-  fileSize.textContent = formatFileSize(file.size);
-  fileInfo.style.display = 'flex';
-  uploadArea.classList.add('has-file');
-  
-  // Enable generate button
-  generateBtn.classList.add('active');
-  generateBtn.disabled = false;
-  
-  // Extract text from file (in background, no preview)
-  extractTextFromFile(file);
+    const file = fileInput.files[0];
+    
+    if (!file) return;
+    
+    // Validate file type
+    const validTypes = [
+        'application/pdf', 
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/msword',
+        'text/plain',
+        'image/jpeg',
+        'image/png',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    ];
+    
+    if (!validTypes.includes(file.type)) {
+        showNotification('Please select a valid file type (PDF, DOCX, TXT, JPG, PNG, PPT)', 'error');
+        resetFileInput();
+        return;
+    }
+    
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+        showNotification('File size must be less than 10MB', 'error');
+        resetFileInput();
+        return;
+    }
+    
+    // Display file info inside the upload area
+    fileName.textContent = file.name;
+    fileSize.textContent = formatFileSize(file.size);
+    fileInfo.style.display = 'flex';
+    uploadArea.classList.add('has-file');
+    
+    // Enable generate button
+    generateBtn.classList.add('active');
+    generateBtn.disabled = false;
+    
+    // Extract text from file (in background, no preview)
+    extractTextFromFile(file);
 }
 
 function resetFileInput() {
-  fileInput.value = '';
-  fileInfo.style.display = 'none';
-  uploadArea.classList.remove('has-file');
-  generateBtn.classList.remove('active');
-  generateBtn.disabled = true;
+    fileInput.value = '';
+    fileInfo.style.display = 'none';
+    uploadArea.classList.remove('has-file');
+    generateBtn.classList.remove('active');
+    generateBtn.disabled = true;
 }
 
 function formatFileSize(bytes) {
-  if (bytes === 0) return '0 Bytes';
-  
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 function updateQuestionCount() {
-  questionCount.textContent = questionRange.value;
+    questionCount.textContent = questionRange.value;
 }
 
 // Text extraction functions
 async function extractTextFromFile(file) {
-  showNotification('Processing your file...', 'info');
-  
-  try {
-    let text = '';
+    showNotification('Processing your file...', 'info');
     
-    switch (file.type) {
-      case 'application/pdf':
-        text = await extractTextFromPDF(file);
-        break;
-      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-      case 'application/msword':
-        text = await extractTextFromDocx(file);
-        break;
-      case 'text/plain':
-        text = await extractTextFromTxt(file);
-        break;
-      case 'image/jpeg':
-      case 'image/png':
-        text = await extractTextFromImage(file);
-        break;
-      case 'application/vnd.ms-powerpoint':
-      case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
-        text = await extractTextFromPPT(file);
-        break;
-      default:
-        throw new Error('Unsupported file type');
+    try {
+        let text = '';
+        
+        switch (file.type) {
+            case 'application/pdf':
+                text = await extractTextFromPDF(file);
+                break;
+            case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+            case 'application/msword':
+                text = await extractTextFromDocx(file);
+                break;
+            case 'text/plain':
+                text = await extractTextFromTxt(file);
+                break;
+            case 'image/jpeg':
+            case 'image/png':
+                text = await extractTextFromImage(file);
+                break;
+            case 'application/vnd.ms-powerpoint':
+            case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+                text = await extractTextFromPPT(file);
+                break;
+            default:
+                throw new Error('Unsupported file type');
+        }
+        
+        if (text && text.length > 0) {
+            showNotification('File processed successfully!', 'success');
+        } else {
+            showNotification('No text could be extracted from this file', 'warning');
+        }
+        
+        return text;
+    } catch (error) {
+        console.error('Text extraction error:', error);
+        showNotification('Error processing file: ' + error.message, 'error');
+        return '';
     }
-    
-    if (text && text.length > 0) {
-      showNotification('File processed successfully!', 'success');
-    } else {
-      showNotification('No text could be extracted from this file', 'warning');
-    }
-    
-    return text;
-  } catch (error) {
-    console.error('Text extraction error:', error);
-    showNotification('Error processing file: ' + error.message, 'error');
-    return '';
-  }
 }
 
 async function extractTextFromPDF(file) {
-  return new Promise((resolve, reject) => {
-    const fileReader = new FileReader();
-    
-    fileReader.onload = async function() {
-      try {
-        const typedArray = new Uint8Array(this.result);
-        const pdf = await pdfjsLib.getDocument(typedArray).promise;
+    return new Promise((resolve, reject) => {
+        const fileReader = new FileReader();
         
-        let text = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          text += textContent.items.map(item => item.str).join(' ') + '\n';
-        }
+        fileReader.onload = async function() {
+            try {
+                const typedArray = new Uint8Array(this.result);
+                const pdf = await pdfjsLib.getDocument(typedArray).promise;
+                
+                let text = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    text += textContent.items.map(item => item.str).join(' ') + '\n';
+                }
+                
+                resolve(text);
+            } catch (error) {
+                reject(error);
+            }
+        };
         
-        resolve(text);
-      } catch (error) {
-        reject(error);
-      }
-    };
-    
-    fileReader.onerror = reject;
-    fileReader.readAsArrayBuffer(file);
-  });
+        fileReader.onerror = reject;
+        fileReader.readAsArrayBuffer(file);
+    });
 }
 
 async function extractTextFromDocx(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    
-    reader.onload = function(event) {
-      const arrayBuffer = event.target.result;
-      
-      mammoth.extractRawText({ arrayBuffer })
-        .then(result => resolve(result.value))
-        .catch(err => reject(err));
-    };
-    
-    reader.onerror = reject;
-    reader.readAsArrayBuffer(file);
-  });
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(event) {
+            const arrayBuffer = event.target.result;
+            
+            mammoth.extractRawText({ arrayBuffer })
+                .then(result => resolve(result.value))
+                .catch(err => reject(err));
+        };
+        
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+    });
 }
 
 async function extractTextFromTxt(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    
-    reader.onload = function(event) {
-      resolve(event.target.result);
-    };
-    
-    reader.onerror = reject;
-    reader.readAsText(file);
-  });
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(event) {
+            resolve(event.target.result);
+        };
+        
+        reader.onerror = reject;
+        reader.readAsText(file);
+    });
 }
 
 async function extractTextFromImage(file) {
-  try {
-    showNotification('Extracting text from image...', 'info');
-    
-    const { data: { text } } = await Tesseract.recognize(
-      file,
-      'eng',
-      { logger: m => console.log(m) }
-    );
-    
-    return text;
-  } catch (error) {
-    throw new Error('OCR failed: ' + error.message);
-  }
+    try {
+        showNotification('Extracting text from image...', 'info');
+        
+        const { data: { text } } = await Tesseract.recognize(
+            file,
+            'eng',
+            { logger: m => console.log(m) }
+        );
+        
+        return text;
+    } catch (error) {
+        throw new Error('OCR failed: ' + error.message);
+    }
 }
 
 async function extractTextFromPPT(file) {
-  // For PPT files, we'll convert to PDF first (simplified approach)
-  return new Promise((resolve) => {
-    // For demonstration purposes, we'll return a placeholder message
-    resolve("PPT file content extracted successfully.");
-  });
+    // For PPT files, we'll convert to PDF first (simplified approach)
+    return new Promise((resolve) => {
+        // For demonstration purposes, we'll return a placeholder message
+        resolve("PPT file content extracted successfully.");
+    });
 }
 
 // Generate questions button handler
-generateBtn.addEventListener('click', async function() {
-  const file = fileInput.files[0];
-  
-  if (!file) {
-    showNotification('Please select a file first', 'error');
-    return;
-  }
-  
-  // Show loading state
-  const originalText = this.innerHTML;
-  this.innerHTML = '<div class="spinner"></div> Processing...';
-  this.disabled = true;
-  
-  try {
-    // Extract text from file
-    const text = await extractTextFromFile(file);
+async function handleGenerateQuestions() {
+    const file = fileInput.files[0];
     
-    if (!text || text.trim().length === 0) {
-      throw new Error('No text could be extracted from the file');
+    if (!file) {
+        showNotification('Please select a file first', 'error');
+        return;
     }
     
-    // Get user options
-    const questionType = document.getElementById('questionType').value;
-    const numQuestions = document.getElementById('questionRange').value;
-    const difficulty = document.getElementById('difficultyLevel').value;
+    // Show loading state
+    const originalText = this.innerHTML;
+    this.innerHTML = '<div class="spinner"></div> Processing...';
+    this.disabled = true;
     
-    // In a real application, you would send this data to your backend
-    // For now, we'll just show a success message
-    showNotification(`Ready to generate ${numQuestions} ${questionType} questions (${difficulty} difficulty)!`, 'success');
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      this.innerHTML = originalText;
-      this.disabled = false;
-      
-      // Show a mock result (in a real app, this would be the actual generated questions)
-      alert(`Success! ${numQuestions} questions generated from your ${file.name} file. In a real application, you would now see the questions.`);
-    }, 2000);
-    
-  } catch (error) {
-    console.error('Error generating questions:', error);
-    showNotification('Error: ' + error.message, 'error');
-    
-    // Reset button state
-    this.innerHTML = originalText;
-    this.disabled = false;
-  }
-});
+    try {
+        // Extract text from file
+        const text = await extractTextFromFile(file);
+        
+        if (!text || text.trim().length === 0) {
+            throw new Error('No text could be extracted from the file');
+        }
+        
+        // Get user options
+        const questionType = document.getElementById('questionType').value;
+        const numQuestions = document.getElementById('questionRange').value;
+        const difficulty = document.getElementById('difficultyLevel').value;
+        
+        // In a real application, you would send this data to your backend
+        // For now, we'll just show a success message
+        showNotification(`Ready to generate ${numQuestions} ${questionType} questions (${difficulty} difficulty)!`, 'success');
+        
+        // Simulate API call delay
+        setTimeout(() => {
+            this.innerHTML = originalText;
+            this.disabled = false;
+            
+            // Show a mock result (in a real app, this would be the actual generated questions)
+            alert(`Success! ${numQuestions} questions generated from your ${file.name} file. In a real application, you would now see the questions.`);
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Error generating questions:', error);
+        showNotification('Error: ' + error.message, 'error');
+        
+        // Reset button state
+        this.innerHTML = originalText;
+        this.disabled = false;
+    }
+}
 
 // Notification system
 function showNotification(message, type = 'info') {
-  // Create notification element
-  const notification = document.createElement('div');
-  notification.className = `notification notification-${type}`;
-  notification.innerHTML = `
-    <span>${message}</span>
-    <button onclick="this.parentElement.remove()">&times;</button>
-  `;
-  
-  // Add to document
-  document.body.appendChild(notification);
-  
-  // Auto remove after 5 seconds
-  setTimeout(() => {
-    if (notification.parentElement) {
-      notification.remove();
-    }
-  }, 5000);
+    // Remove any existing notifications first
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => notification.remove());
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()">&times;</button>
+    `;
+    
+    // Add to document
+    document.body.appendChild(notification);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
 }
-
-// Initialize the application
-function initApp() {
-  // Set up any initial state here
-  console.log('ExamBlox application initialized');
-}
-
-// Start the application when the DOM is loaded
-document.addEventListener('DOMContentLoaded', initApp);
