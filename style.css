@@ -285,6 +285,8 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 2; /* Ensure content is above the clickable overlay */
 }
 
 .file-info {
@@ -299,6 +301,8 @@ body {
   margin-top: 15px;
   justify-content: center;
   text-align: center;
+  position: relative;
+  z-index: 2; /* Ensure file info is above the clickable overlay */
 }
 
 .file-info-content {
@@ -344,6 +348,8 @@ body {
   justify-content: center;
   transition: all 0.3s;
   font-size: 0.9rem;
+  position: relative;
+  z-index: 3; /* Ensure remove button is clickable */
 }
 
 .btn-remove:hover {
@@ -355,8 +361,8 @@ body {
   margin-right: 5px;
 }
 
-/* Make the entire upload area clickable */
-.upload-area::after {
+/* Make the entire upload area clickable - FIXED */
+.upload-area.clickable-overlay::after {
   content: '';
   position: absolute;
   top: 0;
@@ -364,13 +370,15 @@ body {
   right: 0;
   bottom: 0;
   z-index: 1;
+  cursor: pointer;
 }
 
 /* Ensure buttons and inputs are clickable above the overlay */
 .btn-browse, #fileInput, .btn-remove {
   position: relative;
-  z-index: 2;
+  z-index: 3; /* Higher z-index to be above the overlay */
 }
+
 .upload-area:hover, .upload-area.dragover {
   background: rgba(42, 39, 64, 0.7);
   transform: translateY(-2px);
@@ -381,16 +389,22 @@ body {
   font-size: 3rem;
   color: var(--primary);
   margin-bottom: 15px;
+  position: relative;
+  z-index: 2;
 }
 
 .upload-title {
   font-weight: 600;
   margin-bottom: 5px;
+  position: relative;
+  z-index: 2;
 }
 
 .upload-subtitle {
   color: var(--text-secondary);
   margin: 10px 0;
+  position: relative;
+  z-index: 2;
 }
 
 .btn-browse {
@@ -403,13 +417,14 @@ body {
   font-weight: 600;
   transition: all 0.3s;
   margin: 10px 0;
+  position: relative;
+  z-index: 3; /* Higher z-index to be above the overlay */
 }
 
 .btn-browse:hover {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(106, 75, 255, 0.4);
 }
-
 .upload-options {
   display: grid;
   gap: 15px;
@@ -1204,14 +1219,11 @@ footer {
 }
 
 /* Adjust upload area when file is selected */
-.upload-area.has-file {
-  padding-bottom: 5px;
-}
-
 .upload-area.has-file .upload-icon,
 .upload-area.has-file .upload-title,
 .upload-area.has-file .upload-subtitle,
 .upload-area.has-file .btn-browse {
   display: none;
 }
+
 
