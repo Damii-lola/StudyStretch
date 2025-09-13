@@ -1068,54 +1068,55 @@ footer {
   text-align: center;
 }
 
-/* Enhanced upload area styles */
-.upload-area.dragover {
-  background: rgba(106, 75, 255, 0.1) !important;
-  border: 2px dashed var(--primary-light) !important;
-  transform: scale(1.02) !important;
+/* Add these styles to your existing CSS */
+
+/* File upload enhancements */
+#fileInput {
+  display: none;
 }
 
-.upload-area.dragover .upload-icon i {
-  color: var(--primary-light) !important;
-  transform: scale(1.1);
+.file-info {
+  animation: fadeIn 0.3s ease-in;
 }
 
-.upload-area.dragover .upload-title {
-  color: var(--primary-light) !important;
+.extracted-text-container {
+  animation: fadeIn 0.5s ease-in;
 }
 
-/* File selection styles */
-.upload-area.has-file {
-  border-color: var(--success) !important;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.remove-file {
-  transition: all 0.3s ease;
+/* Loading spinner */
+.spinner {
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 3px solid var(--primary-light);
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-right: 10px;
 }
 
-.remove-file:hover {
-  background: rgba(244, 67, 54, 0.3) !important;
-  transform: translateY(-1px);
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-/* Progress bar animation */
-@keyframes progressAnimation {
-  0% { width: 0%; }
-  50% { width: 70%; }
-  100% { width: 100%; }
+/* Progress bar */
+.progress-bar {
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  margin: 10px 0;
 }
 
-/* Mobile responsiveness for upload area */
-@media (max-width: 768px) {
-  .upload-area {
-    padding: 20px 15px !important;
-  }
-  
-  .upload-icon {
-    font-size: 2rem !important;
-  }
-  
-  .upload-title {
-    font-size: 0.9rem !important;
-  }
+.progress {
+  height: 10px;
+  background: linear-gradient(90deg, var(--primary-light), var(--primary));
+  border-radius: 5px;
+  width: 0%;
+  transition: width 0.3s ease;
 }
