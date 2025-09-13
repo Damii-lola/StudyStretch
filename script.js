@@ -46,11 +46,14 @@ document.addEventListener('DOMContentLoaded', function() {
         generateBtn.addEventListener('click', handleGenerateQuestions);
     }
     
-    // Make the entire upload area clickable
+    // Make the entire upload area clickable - FIXED APPROACH
     if (uploadArea) {
+        // Add the clickable overlay class
+        uploadArea.classList.add('clickable-overlay');
+        
         uploadArea.addEventListener('click', (e) => {
-            // Don't trigger if clicking on remove button or its children
-            if (!e.target.closest('.btn-remove')) {
+            // Only trigger file selection if clicking on the overlay (not buttons)
+            if (e.target === uploadArea || e.target.classList.contains('upload-area-content')) {
                 fileInput.click();
             }
         });
@@ -241,7 +244,7 @@ async function extractTextFromPDF(file) {
 }
 
 async function extractTextFromDocx(file) {
-    return new Promise((resolve, reject) {
+    return new Promise((resolve, reject) => {
         const reader = new FileReader();
         
         reader.onload = function(event) {
