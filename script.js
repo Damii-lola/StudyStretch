@@ -46,19 +46,22 @@ document.addEventListener('DOMContentLoaded', function() {
         generateBtn.addEventListener('click', handleGenerateQuestions);
     }
     
-    // Make the entire upload area clickable
+    // Make the entire upload area clickable - SIMPLIFIED APPROACH
     if (uploadArea) {
-        uploadArea.addEventListener('click', (e) => {
-            // Don't trigger if clicking on remove button or its children
-            if (!e.target.closest('.btn-remove') && !e.target.closest('.btn-browse')) {
-                fileInput.click();
-            }
-        });
+        uploadArea.addEventListener('click', handleUploadAreaClick);
     }
     
     // Set up drag and drop functionality
     setupDragAndDrop();
 });
+
+// Handle upload area click
+function handleUploadAreaClick(e) {
+    // Don't trigger if clicking on remove button, browse button, or their children
+    if (!e.target.closest('.btn-remove') && !e.target.closest('.btn-browse')) {
+        fileInput.click();
+    }
+}
 
 // Drag and drop functionality
 function setupDragAndDrop() {
@@ -259,7 +262,7 @@ async function extractTextFromDocx(file) {
 
 async function extractTextFromTxt(file) {
     return new Promise((resolve, reject) => {
-        const reader = new FileReader();
+        const reader = const reader = new FileReader();
         
         reader.onload = function(event) {
             resolve(event.target.result);
