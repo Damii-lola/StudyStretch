@@ -74,22 +74,20 @@
             <p class="upload-subtitle">or</p>
             <button class="btn-browse" id="browseBtn">Browse Files</button>
             <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png,.ppt,.pptx" style="display: none;">
-          </div>
-          
-          <div class="file-info" id="fileInfo" style="display: none; margin: 15px 0; padding: 10px; background: rgba(21, 19, 32, 0.5); border-radius: 8px;">
-            <div class="file-details">
-              <p><strong>Selected file:</strong> <span id="fileName"></span></p>
-              <p><strong>File type:</strong> <span id="fileType"></span></p>
-              <p><strong>File size:</strong> <span id="fileSize"></span></p>
+            
+            <!-- File info will appear inside the upload area -->
+            <div class="file-info" id="fileInfo">
+              <div class="file-icon">
+                <i class="fas fa-file"></i>
+              </div>
+              <div class="file-details">
+                <p class="file-name" id="fileName"></p>
+                <p class="file-size" id="fileSize"></p>
+              </div>
+              <button class="btn-remove" id="removeFileBtn">
+                <i class="fas fa-times"></i>
+              </button>
             </div>
-            <button class="btn-remove" id="removeFileBtn" style="background: var(--error); color: white; border: none; padding: 5px 10px; border-radius: 4px; margin-top: 10px; cursor: pointer;">
-              <i class="fas fa-times"></i> Remove File
-            </button>
-          </div>
-          
-          <div class="extracted-text-container" id="extractedTextContainer" style="display: none; margin: 15px 0; max-height: 200px; overflow-y: auto; background: rgba(21, 19, 32, 0.5); padding: 10px; border-radius: 8px;">
-            <h4 style="margin-bottom: 10px;">Extracted Text Preview:</h4>
-            <div id="extractedTextPreview" style="font-size: 0.9rem; line-height: 1.4; color: var(--text-secondary);"></div>
           </div>
           
           <div class="upload-options">
@@ -132,7 +130,7 @@
       </div>
     </div>
   </header>
-
+  
   <!-- Trusted By Section -->
   <section class="trusted-by">
     <div class="container">
@@ -447,4 +445,5 @@
   
 </body>
 </html>
+
 
